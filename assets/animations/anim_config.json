@@ -1,0 +1,77 @@
+{
+  "walk": {
+    "frames": 72,
+    "fps": 25.0,
+    "loop": false
+  },
+  "pet": {
+    "frames": 95,
+    "fps": 25.0,
+    "loop": false
+  },
+  "eat": {
+    "frames": 80,
+    "fps": 25.0,
+    "loop": false
+  },
+  "sleep": {
+    "frames": 78,
+    "fps": 25.0,
+    "loop": false
+  },
+  "idle": {
+    "frames": 1,
+    "fps": 1.0,
+    "loop": true
+  },
+  "wake": {
+    "frames": 96,
+    "fps": 25.0,
+    "loop": false
+  },
+  "play": {
+    "frames": 95,
+    "fps": 25.0,
+    "loop": false
+  },
+  "cat": {
+    "frames": 85,
+    "fps": 25.0,
+    "loop": false
+  },
+  "study": {
+    "frames": 96,
+    "fps": 25.0,
+    "loop": false
+  },
+  "item_apple": {
+    "frames": 24,
+    "fps": 20.0,
+    "loop": false
+  },
+  "item_cake": {
+    "frames": 24,
+    "fps": 20.0,
+    "loop": false
+  },
+  "item_candy": {
+    "frames": 24,
+    "fps": 20.0,
+    "loop": false
+  },
+  "item_coffee": {
+    "frames": 24,
+    "fps": 20.0,
+    "loop": false
+  },
+  "item_plush": {
+    "frames": 24,
+    "fps": 20.0,
+    "loop": false
+  },
+  "item_gift": {
+    "frames": 24,
+    "fps": 20.0,
+    "loop": false
+  }
+}
