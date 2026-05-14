@@ -300,8 +300,12 @@ class SpriteRenderer:
                 self._blend_remain -= 1
             return
 
-        # D: 普通 idle 循环 ──────────────────────────────────────────────────
-        self._switch("idle")
+        # D: 根据 state_action 选择循环动作（idle/drag/cling 等 loop=true 的动作）
+        target = state_action
+        seq = self._seqs.get(target)
+        if seq is None or not seq.loop:
+            target = "idle"
+        self._switch(target)
         self._advance(dt)
         if self._blend_remain > 0:
             self._blend_remain -= 1
