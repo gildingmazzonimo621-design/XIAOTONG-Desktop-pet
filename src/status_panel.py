@@ -46,6 +46,18 @@ from src.user_data import avatar_path as _avatar_path
 AVATAR_SAVE = _avatar_path()
 ATTR_W = 96
 
+# ── 道具特效色板 (accent_color, accent_bg) ──────────────────────────────
+_ITEM_ACCENT = {
+    "apple":    ("#e05050", "#fff0f0"),
+    "cake":     ("#d4609a", "#fff0f6"),
+    "candy":    ("#8b5ed4", "#f2eeff"),
+    "coffee":   ("#9a5c28", "#fff5ec"),
+    "plush":    ("#3aaa8c", "#edfff9"),
+    "star":     ("#c89400", "#fffbe6"),
+    "gift_box": ("#d86030", "#fff3ec"),
+}
+_ITEM_ACCENT_DEFAULT = ("#b09480", "#f5ede4")
+
 def _asset(n):
     b = os.path.dirname(sys.executable) if getattr(sys,"frozen",False) else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(b, n)
@@ -504,45 +516,187 @@ class StatusPanel(QWidget):
 
     # ════════════════════  背包页  ════════════════════════════
     def _pg_bag(self):
-        L=self._cl; L.addWidget(_lbl("🎒 背包",13,T1,True)); L.addSpacing(8)
-        if not self._gs: L.addStretch(); return
-        bp=self._gs.get_backpack()
+        L = self._cl
+        # ── 标题行 ──────────────────────────────────────────
+        hdr = QHBoxLayout()
+        hdr.addWidget(_lbl("🎒 背包", 14, T1, True))
+        hdr.addStretch()
+        L.addLayout(hdr)
+        L.addSpacing(10)
+
+        if not self._gs:
+            L.addStretch()
+            return
+
+        # ── 可滚动内容区 ─────────────────────────────────────
+        sa = QScrollArea(); sa.setWidgetResizable(True)
+        sa.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        sa.setStyleSheet(
+            f"QScrollArea{{border:none;background:transparent;}}"
+            f"QScrollBar:vertical{{width:5px;background:{CARD2};}}"
+            f"QScrollBar::handle:vertical{{background:{BD};border-radius:2px;}}"
+            f"QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{{height:0px;}}")
+        sw = QWidget(); sw.setStyleSheet("background:transparent;border:none;")
+        sl = QVBoxLayout(sw); sl.setContentsMargins(0, 2, 4, 0); sl.setSpacing(10)
+
+        from src.game_systems import SHOP_MAP
+        bp = self._gs.get_backpack()
+
         if not bp:
-            L.addWidget(_lbl("背包空空如也~\n去商店买点东西吧！",11,T3)); L.addStretch(); return
-        from src.game_systems import SHOP_ITEMS
-        im={s["id"]:s for s in SHOP_ITEMS}
-        g=QGridLayout(); g.setSpacing(8); col=0; row=0
-        for iid,cnt in bp.items():
-            s=im.get(iid)
-            if not s: continue
-            b=QPushButton(f"{s['name']}\n×{cnt}"); b.setFixedSize(90,68); b.setFont(QFont("Microsoft YaHei",10))
-            b.setStyleSheet(f"QPushButton{{background:{CARD};color:{T1};border:1.5px solid {BD};border-radius:12px;}}"
-                            f"QPushButton:hover{{background:{BGB};border-color:{BD2};}}")
-            b.clicked.connect(lambda _=None,i=iid:self._use(i)); g.addWidget(b,row,col)
-            col+=1
-            if col>=4: col=0; row+=1
-        L.addLayout(g); L.addSpacing(10)
-        L.addWidget(_lbl("点击物品即可使用",10,T3)); L.addStretch()
+            # ── 空背包状态 ──────────────────────────────────
+            empty = QFrame()
+            empty.setStyleSheet(
+                f"QFrame{{background:{CARD};border:2px dashed {BD};border-radius:18px;}}")
+            el = QVBoxLayout(empty); el.setContentsMargins(24, 40, 24, 40)
+            el.setAlignment(Qt.AlignCenter); el.setSpacing(8)
+            ico_l = QLabel("🛍️"); ico_l.setFont(QFont("Segoe UI Emoji", 30))
+            ico_l.setAlignment(Qt.AlignCenter)
+            ico_l.setStyleSheet("background:transparent;border:none;")
+            el.addWidget(ico_l)
+            el.addWidget(_lbl("背包空空如也～", 13, T2, True))
+            el.addSpacing(2)
+            el.addWidget(_lbl("去商店买点好东西吧！", 10, T3))
+            sl.addStretch(); sl.addWidget(empty); sl.addStretch()
+        else:
+            for iid, cnt in bp.items():
+                s = SHOP_MAP.get(iid)
+                if not s: continue
+                usable = self._gs.can_use_item(iid, self._ps)[0] if self._ps else True
+                accent, abg = _ITEM_ACCENT.get(iid, _ITEM_ACCENT_DEFAULT)
+                if not usable:
+                    accent, abg = T3, CARD2
+
+                row = QFrame()
+                row.setStyleSheet(
+                    f"QFrame{{background:{CARD};"
+                    f"border-top:4px solid {accent};"
+                    f"border-left:1.5px solid {BD};border-right:1.5px solid {BD};border-bottom:1.5px solid {BD};"
+                    f"border-radius:14px;}}"
+                    f"QFrame:hover{{background:{BGB};"
+                    f"border-left-color:{BD2};border-right-color:{BD2};border-bottom-color:{BD2};}}")
+                rl = QHBoxLayout(row)
+                rl.setContentsMargins(16, 10, 16, 14); rl.setSpacing(0)
+
+                # 表情圆圈
+                emoji_str = s['name'].split()[0]
+                ico = QLabel(emoji_str); ico.setFixedSize(44, 44)
+                ico.setAlignment(Qt.AlignCenter)
+                ico.setFont(QFont("Segoe UI Emoji", 18))
+                ico.setStyleSheet(
+                    f"QLabel{{background:{abg};border-radius:22px;border:none;}}")
+                rl.addWidget(ico); rl.addSpacing(12)
+
+                # 信息列
+                info = QVBoxLayout(); info.setSpacing(5)
+                info.setContentsMargins(0, 0, 0, 0)
+                info.addWidget(_lbl(s['name'], 11, T1 if usable else T3, True))
+                info.addWidget(_lbl(s['desc'], 10, T2 if usable else T3))
+                rl.addLayout(info, 1); rl.addSpacing(10)
+
+                # ×N 使用按钮（使用道具专属强调色）
+                cb = QPushButton(f"×{cnt}"); cb.setFixedSize(48, 34)
+                if usable:
+                    real_accent, real_abg = _ITEM_ACCENT.get(iid, _ITEM_ACCENT_DEFAULT)
+                    cb.setStyleSheet(
+                        f"QPushButton{{background:{real_abg};color:{real_accent};"
+                        f"border:1.5px solid {real_accent};border-radius:10px;"
+                        f"font-size:12px;font-weight:bold;}}"
+                        f"QPushButton:hover{{background:{real_accent};color:#fff;"
+                        f"border-color:{real_accent};}}"
+                        f"QPushButton:pressed{{background:{real_accent};color:#fff;}}")
+                    cb.clicked.connect(lambda _=None, i=iid: self._use(i))
+                else:
+                    cb.setStyleSheet(
+                        f"QPushButton{{background:{CARD2};color:{T3};"
+                        f"border:1.5px solid {BD};border-radius:10px;font-size:12px;}}")
+                    cb.setEnabled(False)
+                rl.addWidget(cb)
+                sl.addWidget(row)
+            sl.addStretch()
+
+        sa.setWidget(sw)
+        L.addWidget(sa, 1)
 
     # ════════════════════  商店页  ════════════════════════════
     def _pg_shop(self):
-        L=self._cl
-        tr=QHBoxLayout(); tr.addWidget(_lbl("🏪 商店",13,T1,True)); tr.addStretch()
-        tr.addWidget(_lbl(f"🪙 {self._gs.coins if self._gs else 0}",12,TB,True)); L.addLayout(tr); L.addSpacing(8)
-        if not self._gs: L.addStretch(); return
+        L = self._cl
+        # ── 标题行 ──────────────────────────────────────────
+        L.addWidget(_lbl("🏪 商店", 14, T1, True))
+        L.addSpacing(10)
+
+        if not self._gs:
+            L.addStretch()
+            return
+
+        # ── 可滚动内容区 ─────────────────────────────────────
+        sa = QScrollArea(); sa.setWidgetResizable(True)
+        sa.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        sa.setStyleSheet(
+            f"QScrollArea{{border:none;background:transparent;}}"
+            f"QScrollBar:vertical{{width:5px;background:{CARD2};}}"
+            f"QScrollBar::handle:vertical{{background:{BD};border-radius:2px;}}"
+            f"QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{{height:0px;}}")
+        sw = QWidget(); sw.setStyleSheet("background:transparent;border:none;")
+        sl = QVBoxLayout(sw); sl.setContentsMargins(0, 2, 4, 0); sl.setSpacing(10)
+
         for s in self._gs.get_shop_items():
-            c=QWidget(); c.setStyleSheet(f"background:{CARD};border-radius:12px;border:1px solid {BD};")
-            cl=QHBoxLayout(c); cl.setContentsMargins(12,10,12,10); cl.setSpacing(10)
-            cl.addWidget(_lbl(s["name"],12,T1))
-            cl.addWidget(_lbl(s["desc"],10,T2),1)
-            ok=self._gs.coins>=s["price"]
-            bb=QPushButton(f"🪙{s['price']}"); bb.setFixedSize(60,30)
-            bb.setStyleSheet(f"QPushButton{{background:{'#fff3e0' if ok else CARD2};color:{'#e65100' if ok else T3};"
-                             f"border:1px solid {'#ffcc80' if ok else BD};border-radius:8px;font-size:11px;}}"
-                             f"QPushButton:hover{{background:#ffe0b2;}}")
-            bb.setEnabled(ok); bb.clicked.connect(lambda _=None,i=s["id"]:self._buy(i)); cl.addWidget(bb)
-            L.addWidget(c); L.addSpacing(2)
-        L.addStretch()
+            iid = s["id"]
+            accent, abg = _ITEM_ACCENT.get(iid, _ITEM_ACCENT_DEFAULT)
+            can_buy = self._gs.coins >= s["price"]
+
+            row = QFrame()
+            row.setStyleSheet(
+                f"QFrame{{background:{CARD};border:1.5px solid {BD};border-radius:14px;}}"
+                f"QFrame:hover{{background:{BGB};border-color:{BD2};}}")
+            rl = QHBoxLayout(row)
+            rl.setContentsMargins(0, 14, 16, 14); rl.setSpacing(0)
+
+            # 左侧彩色竖条
+            stripe = QFrame(); stripe.setFixedWidth(5)
+            stripe.setStyleSheet(
+                f"QFrame{{background:{accent};"
+                f"border-top-left-radius:12px;border-bottom-left-radius:12px;"
+                f"border-top-right-radius:0px;border-bottom-right-radius:0px;"
+                f"border:none;}}")
+            rl.addWidget(stripe); rl.addSpacing(12)
+
+            # 表情圆圈
+            emoji_str = s['name'].split()[0]
+            ico = QLabel(emoji_str); ico.setFixedSize(44, 44)
+            ico.setAlignment(Qt.AlignCenter)
+            ico.setFont(QFont("Segoe UI Emoji", 18))
+            ico.setStyleSheet(
+                f"QLabel{{background:{abg};border-radius:22px;border:none;}}")
+            rl.addWidget(ico); rl.addSpacing(12)
+
+            # 信息列
+            info = QVBoxLayout(); info.setSpacing(5)
+            info.setContentsMargins(0, 0, 0, 0)
+            info.addWidget(_lbl(s['name'], 11, T1, True))
+            info.addWidget(_lbl(s['desc'], 10, T2))
+            rl.addLayout(info, 1); rl.addSpacing(10)
+
+            # 购买按钮
+            bb = QPushButton(f"🪙 {s['price']}"); bb.setFixedSize(60, 34)
+            if can_buy:
+                bb.setStyleSheet(
+                    f"QPushButton{{background:#fff8e1;color:#9a7000;"
+                    f"border:1.5px solid #ffe082;border-radius:10px;"
+                    f"font-size:11px;font-weight:bold;}}"
+                    f"QPushButton:hover{{background:#ffe082;border-color:#c8a800;}}"
+                    f"QPushButton:pressed{{background:#ffd740;}}")
+                bb.clicked.connect(lambda _=None, i=iid: self._buy(i))
+            else:
+                bb.setStyleSheet(
+                    f"QPushButton{{background:{CARD2};color:{T3};"
+                    f"border:1.5px solid {BD};border-radius:10px;font-size:11px;}}")
+                bb.setEnabled(False)
+            rl.addWidget(bb)
+            sl.addWidget(row)
+        sl.addStretch()
+
+        sa.setWidget(sw)
+        L.addWidget(sa, 1)
 
     # ════════════════════  成就页  ════════════════════════════
     def _pg_ach(self):
@@ -872,9 +1026,6 @@ class StatusPanel(QWidget):
         self._cfg_key=_input("API Key", config.get("api_key",""), key_ph, is_password=True)
         self._cfg_model=_input("模型名称", config.get("model",""),
                                "gpt-3.5-turbo / deepseek-chat / claude-3.5-sonnet")
-        L.addSpacing(4)
-        L.addWidget(_lbl("支持官方/中转站/本地兼容接口（自动补全 /v1/chat/completions）",9,T3))
-
         L.addSpacing(12)
         br=QHBoxLayout(); br.setSpacing(10)
         save_btn=QPushButton("保存设置"); save_btn.setFixedHeight(38)

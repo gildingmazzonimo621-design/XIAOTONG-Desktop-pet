@@ -207,6 +207,29 @@ class SpriteRenderer:
                 fps=info.get("fps", 25.0), loop=info.get("loop", True),
                 adir=adir,
             )
+        # 自动注册 config 中未覆盖的 loop pak（drag / cling）
+        for name in ("drag", "cling"):
+            if name not in self._seqs:
+                pak_path = os.path.join(self._adir, f"{name}.pak")
+                if os.path.exists(pak_path):
+                    count = self._count_pak_frames(pak_path)
+                    if count > 0:
+                        self._seqs[name] = FrameSequence(
+                            prefix=name, count=count, size=self.size,
+                            fps=25.0, loop=True, adir=self._adir,
+                        )
+
+    def _count_pak_frames(self, pak_path: str) -> int:
+        """读 pak 的 ZIP 目录计帧数，不解压像素数据。"""
+        if not _PAK_AVAILABLE:
+            return 0
+        try:
+            zf = open_pak(pak_path)
+            count = sum(1 for n in zf.namelist() if n.endswith(".png"))
+            zf.close()
+            return count
+        except Exception:
+            return 0
 
     def _scan_dir(self) -> dict:
         cfg: dict = {}
@@ -289,13 +312,11 @@ class SpriteRenderer:
 
     def switch_loop(self, action: str):
         """立即切换到一个循环动画，绕过 oneshot 队列。用于 drag/cling 等持续循环。"""
-        if action not in self._seqs:
+        if action not in self._seqs or self._frozen_sleep:
             return
         self._pending.clear()
         self._frozen_stay = False
         self._freeze_idle_timer = 0.0
-        if self._frozen_sleep:
-            return
         self._switch(action)
 
     def trigger_pet(self): self.trigger("pet")

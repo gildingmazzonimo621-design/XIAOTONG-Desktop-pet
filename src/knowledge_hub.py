@@ -24,8 +24,6 @@ CLR_WEB    = "#7aba7a"   # 绿
 CLR_MANUAL = "#a0b8d8"   # 蓝
 CLR_DOC    = "#7ab8d4"   # 青
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 
 def _lbl(t="", sz=12, c=T1, bold=False):
     lb = QLabel(t)

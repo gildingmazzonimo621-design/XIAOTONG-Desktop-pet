@@ -50,9 +50,19 @@ def avatar_path() -> str:
 
 
 # ── 项目内置资源路径 ────────────────────────────────────────────
+def _assets_root() -> str:
+    """
+    只读资源根目录（data/、icons/ 等随程序分发的文件）。
+    打包后在 sys._MEIPASS（_internal/），开发时在项目根目录。
+    """
+    if getattr(sys, "frozen", False):
+        return sys._MEIPASS
+    return PROJECT_ROOT
+
+
 def default_persona_path() -> str:
     """内置角色设定文档（随项目分发，所有用户共享）"""
-    return os.path.join(PROJECT_ROOT, "data", "default_persona.txt")
+    return os.path.join(_assets_root(), "data", "default_persona.txt")
 
 
 # ── 数据迁移（从旧版 %APPDATA% 或 data/ 迁移到 geren/）─────────

@@ -50,7 +50,7 @@ class PetAnimator:
                     state.current_action = PetAction.IDLE
 
         # 正在播放一次性动画时不自动切换动作
-        _NO_AUTO = (PetAction.CLING, PetAction.LAND, PetAction.GET_UP,
+        _NO_AUTO = (PetAction.DRAG, PetAction.CLING, PetAction.LAND, PetAction.GET_UP,
                     PetAction.EAT, PetAction.PLAY, PetAction.CAT, PetAction.STUDY)
         if (not state.is_sleeping and not self.special_action
                 and state.current_action not in _NO_AUTO):
@@ -60,7 +60,7 @@ class PetAnimator:
             self.action_timer -= dt
             if self.action_timer <= 0 and not state.is_sleeping:
                 if state.current_action not in (
-                    PetAction.CLING, PetAction.LAND, PetAction.GET_UP,
+                    PetAction.DRAG, PetAction.CLING, PetAction.LAND, PetAction.GET_UP,
                     PetAction.EAT, PetAction.PLAY, PetAction.CAT, PetAction.STUDY):
                     state.current_action = PetAction.IDLE
 
@@ -71,7 +71,7 @@ class PetAnimator:
             self._choose_action(state)
 
     def _choose_action(self, state):
-        if state.current_action == PetAction.DRAG:
+        if state.current_action in (PetAction.DRAG, PetAction.CLING):
             return
         mood = state.current_mood
         if mood == PetMood.HAPPY:

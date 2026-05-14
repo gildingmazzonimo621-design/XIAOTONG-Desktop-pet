@@ -11,10 +11,7 @@ from src.user_data import game_data_path
 
 DATA_FILE = game_data_path()
 
-# ══════════════════════════════════════════════════════════════════════
-#  🧪 测试开关 — 完成测试后将下面改回 False
-# ══════════════════════════════════════════════════════════════════════
-_TEST_UNLIMITED_COINS: bool = True   # True = 无限金币测试模式
+_TEST_UNLIMITED_COINS: bool = False
 
 # ══════════════════════════════════════════════════════════════════════
 #  默认数据结构
@@ -78,6 +75,8 @@ SHOP_ITEMS = [
     {"id": "star",       "name": "⭐ 经验星",   "desc": "经验 +50",       "price": 25, "effect": ("exp", 50)},
     {"id": "gift_box",   "name": "🎁 礼物盒",   "desc": "全属性 +10",     "price": 50, "effect": ("all", 10)},
 ]
+
+SHOP_MAP: dict[str, dict] = {s["id"]: s for s in SHOP_ITEMS}
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -265,19 +264,37 @@ class GameSystems:
         bp[item_id] = bp.get(item_id, 0) + count
         self.save()
 
-    def use_item(self, item_id: str, pet_state) -> str:
-        """使用背包物品，返回提示信息"""
+    def can_use_item(self, item_id: str, pet_state) -> tuple[bool, str]:
+        """检查道具是否可用，返回 (可用, 原因)"""
         bp = self._data["backpack"]
         if bp.get(item_id, 0) <= 0:
-            return "背包里没有这个物品~"
-        # 找到物品效果
-        item = None
-        for si in SHOP_ITEMS:
-            if si["id"] == item_id:
-                item = si
-                break
+            return False, "背包里没有这个物品~"
+        item = SHOP_MAP.get(item_id)
         if item is None:
-            return "未知物品"
+            return False, "未知物品"
+        attr, val = item["effect"]
+        if attr == "exp":
+            return True, ""
+        if attr == "all":
+            full = all(getattr(pet_state, a, 0) > 100 - val
+                       for a in ("hunger", "happiness", "energy", "intimacy"))
+            if full:
+                return False, "所有属性都很充沛，不需要使用~"
+            return True, ""
+        cur = getattr(pet_state, attr, 0)
+        if cur > 100 - val:
+            _ATTR_CN = {"hunger": "饱食度", "happiness": "心情",
+                        "energy": "体力", "intimacy": "亲密度"}
+            name = _ATTR_CN.get(attr, attr)
+            return False, f"{name}已经很高了，不需要使用~"
+        return True, ""
+
+    def use_item(self, item_id: str, pet_state) -> str:
+        """使用背包物品，返回提示信息"""
+        ok, reason = self.can_use_item(item_id, pet_state)
+        if not ok:
+            return reason
+        item = SHOP_MAP[item_id]
 
         attr, val = item["effect"]
         if attr == "all":
@@ -291,6 +308,7 @@ class GameSystems:
             cur = getattr(pet_state, attr, 0)
             setattr(pet_state, attr, min(100, cur + val))
 
+        bp = self._data["backpack"]
         bp[item_id] -= 1
         if bp[item_id] <= 0:
             del bp[item_id]
