@@ -38,6 +38,7 @@ from src.status_panel import StatusPanel
 from src.input_monitor import InputMonitor, InputState
 from src.game_systems import GameSystems
 from src.chat_service import ChatService
+from src.snap_system import SnapSystem, TASKBAR_MARGIN
 
 PET_SIZE = 210
 FPS = 60
@@ -413,6 +414,13 @@ class PetWindow(QWidget):
         self._land_squash        = 1.0
         self._land_squash_timer  = 0.0
 
+        # ── 吸附系统 ────────────────────────────────────────────────
+        self._snap_system = SnapSystem()
+        self._is_snapped       = False
+        self._snap_target_type = ""
+        self._snap_target_hwnd: int | None = None
+        self._SNAP_DISTANCE    = 20
+
         self._opacity_pct    = 100
         self._auto_walk_timer= random.uniform(20.0, 40.0)
         self._last_action_time = time.time()
@@ -512,8 +520,9 @@ class PetWindow(QWidget):
             self._say(_pick("typing"), mood="normal")
 
     def _on_input_idle(self):
-        if not self.state.is_sleeping:
-            self._say(_pick("idle"))
+        if self.state.is_sleeping or self._dragging or self._is_snapped:
+            return
+        self._say(_pick("idle"))
 
     # ── 主循环 ────────────────────────────────────────────────────────
     def _tick(self):
@@ -545,7 +554,8 @@ class PetWindow(QWidget):
                 getattr(self.renderer, '_freeze_idle_timer', 0) > 0
             ))
         )
-        if not renderer_busy:
+        animator_blocked = renderer_busy or self._dragging or self._is_snapped
+        if not animator_blocked:
             self.animator.update(dt, self.state)
 
         # ── 睡眠状态同步：animator 自动触发睡眠时同步驱动渲染器 ──────
@@ -561,6 +571,7 @@ class PetWindow(QWidget):
         self._tick_land_squash(dt)
         if not self._is_thrown and not self._is_falling:
             self._clamp_to_screen()
+        self._tick_snap_follow()
         self._tick_auto_walk(dt)
         self._apply_walk_movement()
         self._sync_window_pos()
@@ -646,7 +657,8 @@ class PetWindow(QWidget):
             self._pet_x += 1.2
 
     def _tick_auto_walk(self, dt: float):
-        if self.state.is_sleeping or self._is_thrown or self._is_falling:
+        if self.state.is_sleeping or self._is_thrown or self._is_falling \
+                or self._dragging or self._is_snapped:
             return
         # 道具动画期间完全跳过 auto_walk
         if self._item_playing:
@@ -768,6 +780,52 @@ class PetWindow(QWidget):
 
     def _sync_window_pos(self):
         self.move(int(self._pet_x) - 20, int(self._pet_y) - 20)
+
+    def _tick_snap_follow(self):
+        """吸附后跟随窗口移动，或检测窗口关闭后脱离吸附。"""
+        if not self._is_snapped:
+            return
+        if self._snap_target_hwnd is None:
+            # 屏幕边缘吸附：不需要跟随，但 clamp 保证不超出屏幕
+            screen = QApplication.primaryScreen().geometry()
+            self._clamp_to_screen()
+            return
+        # 窗口吸附：跟踪目标窗口位置
+        rect = self._snap_system.get_window_rect(self._snap_target_hwnd)
+        if rect is None:
+            # 窗口已关闭/最小化/不可见 → 脱离吸附，坠落
+            self._is_snapped = False
+            self._snap_target_type = ""
+            self._snap_target_hwnd = None
+            self._is_falling = True
+            self._throw_vx = self._throw_vy = 0.0
+            self.state.current_action = PetAction.FALL
+            self._say(_pick("fall"))
+            return
+        left, top, right, bottom = rect
+        ww = right - left
+        wh = bottom - top
+        if ww < 100 or wh < 100:
+            # 窗口变得太小 → 脱离吸附
+            self._is_snapped = False
+            self._snap_target_type = ""
+            self._snap_target_hwnd = None
+            self._is_falling = True
+            self._throw_vx = self._throw_vy = 0.0
+            self.state.current_action = PetAction.FALL
+            self._say(_pick("fall"))
+            return
+        # 更新吸附位置：保持在窗口顶部
+        self._pet_y = float(top - PET_SIZE)
+        self._pet_x = max(float(left),
+                          min(float(right) - PET_SIZE, self._pet_x))
+        # 确保不超出屏幕
+        screen = QApplication.primaryScreen().geometry()
+        sw, sh = float(screen.width()), float(screen.height())
+        min_x, max_x = 0.0, sw - PET_SIZE
+        min_y, max_y = 0.0, sh - PET_SIZE - TASKBAR_MARGIN
+        self._pet_x = max(min_x, min(max_x, self._pet_x))
+        self._pet_y = max(min_y, min(max_y, self._pet_y))
 
     # ── 绘制 ─────────────────────────────────────────────────────────
     def paintEvent(self, event):
@@ -971,6 +1029,12 @@ class PetWindow(QWidget):
     # ── 鼠标事件 ─────────────────────────────────────────────────────
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
+            # 吸附状态下再次拖拽：脱离吸附
+            if self._is_snapped:
+                self._is_snapped = False
+                self._snap_target_type = ""
+                self._snap_target_hwnd = None
+
             if self._is_thrown or self._is_falling:
                 # 物理状态下：先记录点击，等 mouseDoubleClickEvent 窗口期
                 # 用一个短 timer 区分单击 vs 双击
@@ -1019,6 +1083,17 @@ class PetWindow(QWidget):
             while self._drag_history and now - self._drag_history[0][0] > 0.15:
                 self._drag_history.pop(0)
 
+            # 磁力吸引：拖拽时靠近吸附目标自动拉过去
+            snap = self._snap_system.find_nearest_snap(
+                self._pet_x, self._pet_y,
+                int(self.winId()),
+                QApplication.primaryScreen().geometry(),
+                self._SNAP_DISTANCE,
+            )
+            if snap is not None:
+                self._pet_x = snap.snap_x
+                self._pet_y = snap.snap_y
+
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton and self._dragging:
             self._dragging = False
@@ -1054,7 +1129,22 @@ class PetWindow(QWidget):
                     self._throw_vx = self._throw_vy = 0.0
                     self.state.current_action = PetAction.FALL
                 else:
-                    self.state.current_action = PetAction.IDLE
+                    # 松手后自动吸附：检查附近是否有吸附目标
+                    snap = self._snap_system.find_nearest_snap(
+                        self._pet_x, self._pet_y,
+                        int(self.winId()),
+                        screen,
+                        self._SNAP_DISTANCE,
+                    )
+                    if snap is not None:
+                        self._pet_x = snap.snap_x
+                        self._pet_y = snap.snap_y
+                        self._is_snapped = True
+                        self._snap_target_type = snap.edge_type
+                        self._snap_target_hwnd = snap.hwnd
+                        self.state.current_action = PetAction.CLING
+                    else:
+                        self.state.current_action = PetAction.IDLE
 
     def mouseDoubleClickEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -1109,7 +1199,12 @@ class PetWindow(QWidget):
             pass
         else:
             self.state.is_sleeping    = False
-            self.state.current_action = PetAction.IDLE
+            if self._is_snapped:
+                self.state.current_action = PetAction.CLING
+            elif self._dragging:
+                self.state.current_action = PetAction.DRAG
+            else:
+                self.state.current_action = PetAction.IDLE
             if hasattr(self.animator, 'action_timer'):
                 self.animator.action_timer = 0.0
             if hasattr(self.animator, 'auto_action_timer'):
@@ -1223,8 +1318,8 @@ class PetWindow(QWidget):
         self._say(f"以后就叫我 {new_name} 吧！", mood="happy")
 
     def _tick_dialogue(self, dt: float):
-        # 道具动画播放期间暂停自动对话，避免气泡遮挡特效
-        if self._item_playing:
+        # 道具动画播放 / 拖拽 / 吸附期间暂停自动对话
+        if self._item_playing or self._dragging or self._is_snapped:
             return
         self._dialogue_timer -= dt
         if self._dialogue_timer <= 0:
@@ -1235,7 +1330,8 @@ class PetWindow(QWidget):
     # ── 主动聊天计时 ─────────────────────────────────────────────────
     def _tick_proactive(self, dt: float):
         """检测长时间无互动，触发桌宠主动找用户说话"""
-        if self.state.is_sleeping or self._proactive_waiting:
+        if self.state.is_sleeping or self._proactive_waiting \
+                or self._dragging or self._is_snapped:
             return
 
         # 如果用户最近有聊天记录，同步更新互动时间
@@ -1289,7 +1385,7 @@ class PetWindow(QWidget):
             self._proactive_cd = random.uniform(8 * 60, 15 * 60)
 
     def _fire_auto_dialogue(self):
-        if self.state.is_sleeping:
+        if self.state.is_sleeping or self._dragging or self._is_snapped:
             return
         mood_key = _mood_to_dialogue_key(self.state.current_mood)
         if mood_key and random.random() < 0.65:
@@ -1332,8 +1428,8 @@ class PetWindow(QWidget):
         识别气泡文字关键词，触发对应一次性动画。
         仅在安静 idle（鼠标跟随）状态下触发，打字动画进行中不触发。
         """
-        # 睡觉时不打断
-        if self.state.is_sleeping:
+        # 睡觉/吸附时不打断
+        if self.state.is_sleeping or self._is_snapped:
             return
         # 道具动画期间不触发关键词动画
         if self._item_playing:
