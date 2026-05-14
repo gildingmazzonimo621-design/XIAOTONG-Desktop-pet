@@ -12,7 +12,6 @@ user32 = ctypes.windll.user32
 GWL_EXSTYLE = -20
 WS_EX_TOOLWINDOW = 0x00000080
 WS_EX_APPWINDOW = 0x00040000
-GA_ROOT = 2
 
 PET_SIZE = 210
 PET_WINDOW_MARGIN = 20  # window padding around sprite
@@ -43,17 +42,8 @@ class SnapSystem:
     # ------------------------------------------------------------------
 
     def get_snap_targets(self, self_hwnd: int, screen_geometry) -> list[SnapTarget]:
-        """Collect all valid snap targets: screen edges + visible window tops."""
+        """Collect all valid snap targets: visible window top edges."""
         targets: list[SnapTarget] = []
-
-        sw = float(screen_geometry.width())
-        sh = float(screen_geometry.height())
-
-        # Screen edges
-        targets.append(SnapTarget("screen_top",    None, 0,            0,            0,           sw))
-        targets.append(SnapTarget("screen_left",   None, 0,            0,            0,           sh))
-        targets.append(SnapTarget("screen_right",  None, sw - PET_SIZE, 0,            0,           sh))
-        targets.append(SnapTarget("screen_bottom", None, 0,            sh - PET_SIZE - TASKBAR_MARGIN, 0, sw))
 
         # Window top edges
         for w in self._get_visible_windows(self_hwnd):
@@ -62,10 +52,15 @@ class SnapSystem:
             wh = bottom - top
             if ww < 150 or wh < 150:
                 continue
-            # Pet sits on top of the window
-            snap_y = float(top - PET_SIZE)
+            # 截图/浮动预览窗口：桌宠完全在窗口上方；普通窗口：一半一半
+            if w.get("is_tool"):
+                snap_y = float(top - 148)
+                edge_type = "preview_top"
+            else:
+                snap_y = float(top - PET_SIZE / 2)
+                edge_type = "window_top"
             targets.append(SnapTarget(
-                "window_top", w["hwnd"],
+                edge_type, w["hwnd"],
                 snap_x=0,              # placeholder, resolved in find_nearest_snap
                 snap_y=snap_y,
                 range_min=float(left),
@@ -90,7 +85,6 @@ class SnapSystem:
             dist, snapped_x, snapped_y = self._distance_to_target(pet_x, pet_y, t)
             if dist < best_dist and dist <= threshold:
                 best_dist = dist
-                # Update the target's snap position with the resolved coordinate
                 t.snap_x = snapped_x
                 t.snap_y = snapped_y
                 best_target = t
@@ -128,17 +122,6 @@ class SnapSystem:
             if user32.IsIconic(hwnd):
                 return True
 
-            # Skip tool windows without app window flag
-            ex_style = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
-            if (ex_style & WS_EX_TOOLWINDOW) and not (ex_style & WS_EX_APPWINDOW):
-                return True
-
-            # Get root owner for popup windows
-            root = user32.GetAncestor(hwnd, GA_ROOT)
-            if root and root != hwnd:
-                # Only process root windows, skip owned popups
-                pass  # we still include it since GetWindowRect works on owned windows too
-
             rect = ctypes.wintypes.RECT()
             if not user32.GetWindowRect(hwnd, ctypes.byref(rect)):
                 return True
@@ -154,9 +137,12 @@ class SnapSystem:
             if ww <= 0 or wh <= 0:
                 return True
 
+            ex_style = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+            is_tool = bool(ex_style & WS_EX_TOOLWINDOW) and not bool(ex_style & WS_EX_APPWINDOW)
             windows.append({
                 "hwnd": hwnd,
                 "rect": (rect.left, rect.top, rect.right, rect.bottom),
+                "is_tool": is_tool,
             })
             return True
 
@@ -186,12 +172,34 @@ class SnapSystem:
             dist_sq = (pet_x - snapped_x) ** 2 + (pet_y - clamped_y) ** 2
             return (dist_sq ** 0.5, snapped_x, clamped_y)
 
-        elif target.edge_type == "window_top":
-            # Window top edge: snap y is fixed (window_top - PET_SIZE), clamp x
-            snapped_y = target.snap_y
+        elif target.edge_type in ("window_top", "preview_top"):
+            # 计算桌宠边界框到窗口上边缘的最短距离
+            if target.edge_type == "preview_top":
+                window_top = target.snap_y + 148  # snap_y = top - 148
+            else:
+                window_top = target.snap_y + PET_SIZE / 2  # 一半一半: snap_y = top - PET_SIZE/2
+            pet_right = pet_x + PET_SIZE
+            pet_bottom = pet_y + PET_SIZE
+
+            # X 方向：桌宠 X 范围 [pet_x, pet_right] 与窗口 X 范围 [range_min, range_max] 的最短距离
+            if pet_right < target.range_min:
+                dist_x = target.range_min - pet_right
+            elif pet_x > target.range_max:
+                dist_x = pet_x - target.range_max
+            else:
+                dist_x = 0.0
+
+            # Y 方向：桌宠 Y 范围 [pet_y, pet_bottom] 与窗口上边缘的最短距离
+            if pet_bottom < window_top:
+                dist_y = window_top - pet_bottom
+            elif pet_y > window_top:
+                dist_y = pet_y - window_top
+            else:
+                dist_y = 0.0
+
+            dist = (dist_x ** 2 + dist_y ** 2) ** 0.5
             clamped_x = max(target.range_min, min(target.range_max - PET_SIZE, pet_x))
-            dist_sq = (pet_x - clamped_x) ** 2 + (pet_y - snapped_y) ** 2
-            return (dist_sq ** 0.5, clamped_x, snapped_y)
+            return (dist, clamped_x, target.snap_y)
 
         # Fallback: no valid target
         return (float("inf"), pet_x, pet_y)

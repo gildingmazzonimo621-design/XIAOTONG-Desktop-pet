@@ -287,6 +287,17 @@ class SpriteRenderer:
         if action not in self._pending:
             self._pending.insert(0, action)
 
+    def switch_loop(self, action: str):
+        """立即切换到一个循环动画，绕过 oneshot 队列。用于 drag/cling 等持续循环。"""
+        if action not in self._seqs:
+            return
+        self._pending.clear()
+        self._frozen_stay = False
+        self._freeze_idle_timer = 0.0
+        if self._frozen_sleep:
+            return
+        self._switch(action)
+
     def trigger_pet(self): self.trigger("pet")
     def trigger_eat(self): self.trigger("eat")
 

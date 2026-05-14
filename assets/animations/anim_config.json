@@ -78,5 +78,15 @@
     "frames": 24,
     "fps": 20.0,
     "loop": false
+  },
+  "drag": {
+    "frames": 1,
+    "fps": 1.0,
+    "loop": true
+  },
+  "cling": {
+    "frames": 1,
+    "fps": 1.0,
+    "loop": true
   }
 }
