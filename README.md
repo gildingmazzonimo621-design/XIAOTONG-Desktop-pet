@@ -86,7 +86,3 @@ desktop-pet/
 - urllib（标准库，无第三方 HTTP 依赖）
 
 ---
-
-## License
-
-[MIT](./LICENSE)

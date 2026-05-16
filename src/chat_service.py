@@ -528,6 +528,46 @@ class ChatService:
         self._memory["recent"] = recent
         self._save_memory()
 
+    _NICK_PATTERNS = [
+        # "叫我X" / "称呼我X" / "喊我X"（最常见）
+        re.compile(r"(?:叫我|称呼我|喊我|叫我做|叫我为)\s*(\S{1,8})"),
+        # "直接叫X" / "就叫X" / "请叫X"（省略"我"的变体）
+        re.compile(r"(?:直接|就|请)叫\s*(\S{1,8})"),
+        # "我叫X" / "我的名字是X"
+        re.compile(r"(?:我叫|我的名字(?:是|叫))\s*(\S{1,8})"),
+    ]
+    # 提取后需要排除的无效匹配
+    _NICK_EXCLUDE = {"主人", "我", "你", "他", "她", "它", "什么", "啥",
+                     "你的", "他的", "她的", "我的"}
+
+    def get_user_nickname(self) -> str:
+        """
+        从记忆和对话中提取用户希望被称呼的名字。
+        优先扫描 facts，再扫描 recent 对话。
+        未找到则返回 '主人'。
+        """
+        for f in reversed(self._memory.get("facts", [])):
+            text = f["text"] if isinstance(f, dict) else f
+            name = self._extract_nick(text)
+            if name:
+                return name
+        for m in reversed(self._memory.get("recent", [])):
+            if m.get("role") != "user":
+                continue
+            name = self._extract_nick(m["content"])
+            if name:
+                return name
+        return "主人"
+
+    def _extract_nick(self, text: str) -> str | None:
+        for pat in self._NICK_PATTERNS:
+            m = pat.search(text)
+            if m:
+                name = m.group(1).rstrip("，。！,. 吧呢啊哦呀")
+                if name and name not in self._NICK_EXCLUDE:
+                    return name
+        return None
+
     def _remove_related_facts(self, user_msg):
         """移除与指定用户消息高度相关的记忆条目"""
         facts = self._memory.get("facts", [])

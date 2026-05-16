@@ -22,10 +22,9 @@ except ImportError:
 
 
 def _root_dir() -> str:
-    """返回项目根目录"""
+    """返回资源根目录（只读资源：动画、图标等打包时捆绑的文件）"""
     if getattr(sys, "frozen", False):
-        return os.path.dirname(sys.executable)
-    # src/ 的父目录即为项目根目录
+        return sys._MEIPASS
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def _asset_dir() -> str:

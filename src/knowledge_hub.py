@@ -808,6 +808,7 @@ class KnowledgeHub(QWidget):
         self._style_sidebar()
         self._update_badge_counts()
         self._render_timeline()
+        self._keep_open_folder = None
 
     def _update_badge_counts(self):
         mi = self._cs.get_memory_info()
@@ -944,6 +945,8 @@ class KnowledgeHub(QWidget):
     def _render_folder(self, title, icon, group_facts, all_facts,
                        editable_name=False, start_open=False):
         """渲染一个可折叠文件夹（支持名称编辑 / 条目编辑 / 增删）"""
+        if getattr(self, '_keep_open_folder', None) == title:
+            start_open = True
         wrapper = QWidget()
         wrapper.setStyleSheet("background:transparent;border:none;")
         wl = QVBoxLayout(wrapper)
@@ -1081,7 +1084,8 @@ class KnowledgeHub(QWidget):
                 fact.get("text", ""),
                 fact.get("source", "chat"),
                 fact.get("ts", 0),
-                idx)
+                idx,
+                folder_title=title)
             cl.addWidget(mini)
 
         # ── 行内添加区（默认隐藏）
@@ -1108,7 +1112,7 @@ class KnowledgeHub(QWidget):
         # 添加来源取决于文件夹类型
         _src_type = group_facts[0].get("source", "manual") if group_facts else "manual"
 
-        def _do_add(_orig=title, _src=_src_type):
+        def _do_add(*_args, _orig=title, _src=_src_type):
             txt = inline_edit.toPlainText().strip()
             if not txt:
                 return
@@ -1116,6 +1120,7 @@ class KnowledgeHub(QWidget):
                 self._cs.add_web_fact(txt, origin=_orig)
             else:
                 self._cs.manual_add_fact(txt)
+            self._keep_open_folder = _orig
             self._refresh()
 
         inline_edit.submitted.connect(_do_add)
@@ -1144,7 +1149,12 @@ class KnowledgeHub(QWidget):
         fold_btn.clicked.connect(_toggle_fold)
 
         # ── "+" 行内输入显隐
-        def _toggle_add(checked=False, _row=inline_row, _edit=inline_edit):
+        def _toggle_add(checked=False, _row=inline_row, _edit=inline_edit,
+                        _c=content, _b=fold_btn, _i=icon_lbl):
+            if _c.isHidden():
+                _c.show()
+                _b.setText("▼")
+                _i.setText("📂")
             if _row.isHidden():
                 _row.show()
                 _edit.setFocus()
@@ -1157,7 +1167,7 @@ class KnowledgeHub(QWidget):
         wl.addWidget(folder)
         self._tl_layout.addWidget(wrapper)
 
-    def _make_mini_card(self, text, src, ts, real_idx):
+    def _make_mini_card(self, text, src, ts, real_idx, folder_title=None):
         """文件夹内的紧凑卡片 — 支持双击编辑文本"""
         card = QWidget()
         card.setStyleSheet(
@@ -1233,7 +1243,7 @@ class KnowledgeHub(QWidget):
         del_btn.setStyleSheet(
             f"QPushButton{{background:transparent;color:{BD};border:none;border-radius:10px;}}"
             f"QPushButton:hover{{background:#fde8e8;color:#c06060;}}")
-        del_btn.clicked.connect(lambda checked=False, i=real_idx: self._delete_fact(i))
+        del_btn.clicked.connect(lambda checked=False, i=real_idx, ft=folder_title: self._delete_fact(i, ft))
         btn_col.addWidget(del_btn)
 
         lay.addLayout(btn_col)
@@ -1597,10 +1607,13 @@ class KnowledgeHub(QWidget):
             return
         self._cs.manual_add_fact(text)
         self._add_input.clear()
+        self._keep_open_folder = "✏️ 手动添加"
         self._refresh()
 
-    def _delete_fact(self, idx):
+    def _delete_fact(self, idx, folder_title=None):
         if idx >= 0:
+            if folder_title:
+                self._keep_open_folder = folder_title
             self._cs.manual_remove_fact(idx)
             self._refresh()
 

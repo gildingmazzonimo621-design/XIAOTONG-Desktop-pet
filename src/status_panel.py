@@ -59,7 +59,8 @@ _ITEM_ACCENT = {
 _ITEM_ACCENT_DEFAULT = ("#b09480", "#f5ede4")
 
 def _asset(n):
-    b = os.path.dirname(sys.executable) if getattr(sys,"frozen",False) else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    """定位打包时捆绑的只读资源（icons/ 等）"""
+    b = sys._MEIPASS if getattr(sys,"frozen",False) else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(b, n)
 
 # ── 工具控件 ────────────────────────────────────────────────
@@ -70,7 +71,7 @@ class AvatarWidget(QWidget):
         self._px=None; self._mc=QColor(MC["normal"]); self.setCursor(Qt.PointingHandCursor)
         self.setToolTip("点击更换头像"); self._load()
     def _load(self):
-        for p in [_asset(AVATAR_SAVE), _asset(os.path.join("assets","animations","idle_0000.png")), _asset(os.path.join("icons","icon.png"))]:
+        for p in [_asset(AVATAR_SAVE), _asset(os.path.join("icons","avatar_default.png")), _asset(os.path.join("icons","icon.png"))]:
             if os.path.exists(p):
                 px=QPixmap(p)
                 # NOTE: KeepAspectRatioByExpanding 会让某边超出 sz，改用 KeepAspectRatio 并手动居中，
@@ -297,8 +298,28 @@ class StatusPanel(QWidget):
     item_used=pyqtSignal(str, str)
     _chat_reply_signal=pyqtSignal(str, str)  # reply, error
     _test_result_signal=pyqtSignal(str)    # status text
+    _action_reply_signal=pyqtSignal(str, str)  # reply, error (动作触发的 AI 回复)
 
     PW, PH = 420, 820
+
+    # ── 聊天内容 → 期待动作 关键词映射 ──
+    _ACTION_KEYWORDS: dict[str, list[str]] = {
+        "feed":  ["饿", "饥", "吃", "食", "汉堡", "零食", "喂", "投喂", "美食", "大餐", "点心", "蛋糕", "苹果", "糖果"],
+        "pet":   ["摸", "抱", "拍", "蹭", "亲", "抚摸", "头"],
+        "play":  ["玩", "球", "游戏", "运动", "羽毛球", "无聊", "陪我"],
+        "sleep": ["困", "睡", "累", "休息", "打盹", "瞌睡", "眯一会"],
+        "cat":   ["猫", "喵", "猫咪", "小猫", "猫猫", "变猫", "学猫"],
+        "study": ["学", "看书", "读书", "复习", "写作业", "功课", "知识"],
+    }
+    # 动作 → 注入给 AI 的上下文描述
+    _ACTION_NOTIFY: dict[str, str] = {
+        "feed":  "[用户刚刚喂了你食物]",
+        "pet":   "[用户刚刚摸了摸你的头]",
+        "play":  "[用户刚刚陪你玩了一局羽毛球]",
+        "sleep": "[用户帮你盖好了被子，让你去睡觉]",
+        "cat":   "[用户刚刚带你一起和猫猫们玩耍了]",
+        "study": "[用户刚刚让你去学习了]",
+    }
 
     def __init__(self, game_systems=None, chat_service=None, parent=None):
         super().__init__(parent)
@@ -311,7 +332,10 @@ class StatusPanel(QWidget):
         self._tab = "settings" if (chat_service and chat_service.is_first_launch) else "status"
         self._chat_reply_signal.connect(self._on_chat_reply)
         self._test_result_signal.connect(self._on_test_result)
+        self._action_reply_signal.connect(self._on_action_reply)
         self._pending_typing_lbl=None
+        self._pending_action: str | None = None   # 期待的动作类型
+        self._pending_action_ts: float = 0.0      # 记录时间戳
         self._build()
 
     def mousePressEvent(self,e):
@@ -1018,13 +1042,56 @@ class StatusPanel(QWidget):
             except RuntimeError:
                 pass  # Qt C++ 对象已被销毁，忽略
             self._pending_typing_lbl = None
+        # ── 无论在哪个 tab，都扫描回复检测动作需求 ──
+        if not error and reply:
+            self._detect_pending_action(reply)
         # 如果用户已切走聊天页，回复已保存在 memory 中，下次进入聊天页会自动加载
         if not hasattr(self, '_chat_layout') or self._tab != "chat":
             return
         if error:
             self._add_chat_bubble(f"出错了：{error[:100]}", False)
         else:
-            # 回复完成后刷新整个聊天视图，确保 msg_index 正确
+            self._refresh_chat_view()
+
+    def _detect_pending_action(self, reply: str):
+        """扫描 AI 回复，如果提到某个动作相关的关键词，记录为期待动作"""
+        import time as _time
+        self._pending_action = None
+        for action, keywords in self._ACTION_KEYWORDS.items():
+            if any(kw in reply for kw in keywords):
+                self._pending_action = action
+                self._pending_action_ts = _time.time()
+                return  # 只取第一个匹配
+
+    def notify_action(self, action: str):
+        """
+        外部调用：用户执行了某个动作（feed/pet/play/sleep）。
+        如果该动作匹配 pending_action 且在 5 分钟内，触发 AI 后续回复。
+        """
+        import time as _time
+        if (self._pending_action != action
+                or _time.time() - self._pending_action_ts > 300):
+            return
+        self._pending_action = None  # 消费掉，防止重复触发
+        if not self._cs or not self._cs.enabled:
+            return
+        notify_tpl = self._ACTION_NOTIFY.get(action, "")
+        if not notify_tpl:
+            return
+        # 用用户设定的称呼替换模板中的"用户"
+        nickname = self._cs.get_user_nickname()
+        notify_msg = notify_tpl.replace("用户", nickname)
+        # 以隐藏消息的方式发给 AI，获取后续回复
+        def on_reply(reply, error):
+            self._action_reply_signal.emit(reply or "", error or "")
+        self._cs.chat(notify_msg, self._ps, callback=on_reply)
+
+    def _on_action_reply(self, reply, error):
+        """信号槽：处理动作触发的 AI 后续回复"""
+        if error or not reply:
+            return
+        # 无论当前在哪个 tab，都刷新聊天记录（回复已保存在 memory 中）
+        if hasattr(self, '_chat_layout') and self._tab == "chat":
             self._refresh_chat_view()
 
     # ════════════════════  设置页  ════════════════════════════

@@ -1228,37 +1228,41 @@ class PetWindow(QWidget):
     def _on_feed(self):
         msg = self.state.feed()
         self.state.current_action = PetAction.EAT
-        self.renderer.trigger("eat")
+        self.renderer.trigger_priority("eat")
         self._reset_walk_timer()
         self.game.record_action("feed")
         self._say(msg or _pick("pet"), mood=_mood_to_str(self.state.current_mood))
+        self.panel.notify_action("feed")
 
     def _on_pet(self):
         msg = self.state.pet_touch()
         self.state.current_action = PetAction.PLAY
-        self.renderer.trigger("pet")
+        self.renderer.trigger_priority("pet")
         self._reset_walk_timer()
         self.game.record_action("pet")
         self._say(msg or _pick("pet"), mood=_mood_to_str(self.state.current_mood))
+        self.panel.notify_action("pet")
 
     def _on_game(self):
         if self.state.is_sleeping:
             self._say("睡着了...别吵我打球...", mood="sleepy")
             return
         self.state.current_action = PetAction.PLAY
-        self.renderer.trigger("play")
+        self.renderer.trigger_priority("play")
         self._reset_walk_timer()
         self.game.record_action("play")
         self._say(_pick("game"), mood="happy")
+        self.panel.notify_action("play")
 
     def _on_sleep(self):
         if self.state.is_sleeping:
             self._say("已经在睡觉了哦~", mood="sleepy")
             return
         msg = self.state.sleep()
-        self.renderer.trigger("sleep")
+        self.renderer.trigger_priority("sleep")
         self._reset_walk_timer()
         self._say(msg, mood="sleepy")
+        self.panel.notify_action("sleep")
 
     def _on_wake(self):
         if not self.state.is_sleeping:
@@ -1274,24 +1278,26 @@ class PetWindow(QWidget):
             self._say("Zzz...梦到小鱼干了...", mood="sleepy")
             return
         self.state.current_action = PetAction.CAT
-        self.renderer.trigger("cat")
+        self.renderer.trigger_priority("cat")
         self._reset_walk_timer()
         self.game.record_action("cat")
         self.state.happiness = min(100, self.state.happiness + 8)
         self._say(_pick("cat"), mood="happy")
+        self.panel.notify_action("cat")
 
     def _on_study(self):
         if self.state.is_sleeping:
             self._say("睡梦中也在学习...才怪", mood="sleepy")
             return
         self.state.current_action = PetAction.STUDY
-        self.renderer.trigger("study")
+        self.renderer.trigger_priority("study")
         self._reset_walk_timer()
         self.game.record_action("study")
         self.state.total_study_times += 1
         self.state.energy = max(0, self.state.energy - 5)
         self.state.exp += 5
         self._say(_pick("study"), mood="normal")
+        self.panel.notify_action("study")
 
     def _on_item_used(self, item_id: str, msg: str):
         """使用背包物品：播放道具动画(.pak 已含底图) + RPG浮动数值标签"""
