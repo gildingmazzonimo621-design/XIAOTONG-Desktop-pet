@@ -35,15 +35,49 @@ def _default_data():
 
 
 # ══════════════════════════════════════════════════════════════════════
-#  每日任务定义
+#  每日任务定义 — 每天从轮换池中选出 7 个，保证天天有新鲜感
 # ══════════════════════════════════════════════════════════════════════
-DAILY_TASKS = [
-    {"id": "feed_2",    "name": "投喂达人",   "desc": "喂食 2 次",     "target": 2, "stat": "feed",  "reward": 15},
-    {"id": "pet_3",     "name": "摸摸大师",   "desc": "摸摸头 3 次",   "target": 3, "stat": "pet",   "reward": 15},
-    {"id": "play_1",    "name": "游戏时光",   "desc": "玩游戏 1 次",   "target": 1, "stat": "play",  "reward": 10},
-    {"id": "online_10", "name": "忠实伙伴",   "desc": "在线 10 分钟",  "target": 10,"stat": "online","reward": 20},
+_TASK_ALWAYS = [
     {"id": "login",     "name": "每日登录",   "desc": "今天打开桌宠",  "target": 1, "stat": "login", "reward": 5},
 ]
+
+_TASK_POOL = [
+    {"id": "feed_1",    "name": "按时吃饭",   "desc": "喂食 1 次",     "target": 1, "stat": "feed",   "reward": 8},
+    {"id": "feed_2",    "name": "投喂达人",   "desc": "喂食 2 次",     "target": 2, "stat": "feed",   "reward": 15},
+    {"id": "feed_3",    "name": "美食三连",   "desc": "喂食 3 次",     "target": 3, "stat": "feed",   "reward": 20},
+    {"id": "pet_2",     "name": "友好问候",   "desc": "摸头 2 次",     "target": 2, "stat": "pet",    "reward": 10},
+    {"id": "pet_3",     "name": "摸摸大师",   "desc": "摸头 3 次",     "target": 3, "stat": "pet",    "reward": 15},
+    {"id": "pet_5",     "name": "温柔抚摸",   "desc": "摸头 5 次",     "target": 5, "stat": "pet",    "reward": 20},
+    {"id": "play_1",    "name": "游戏时光",   "desc": "玩游戏 1 次",   "target": 1, "stat": "play",   "reward": 10},
+    {"id": "play_2",    "name": "双倍快乐",   "desc": "玩游戏 2 次",   "target": 2, "stat": "play",   "reward": 18},
+    {"id": "play_3",    "name": "游戏达人",   "desc": "玩游戏 3 次",   "target": 3, "stat": "play",   "reward": 25},
+    {"id": "online_5",  "name": "短暂陪伴",   "desc": "在线 5 分钟",   "target": 5, "stat": "online", "reward": 10},
+    {"id": "online_10", "name": "忠实伙伴",   "desc": "在线 10 分钟",  "target": 10,"stat": "online", "reward": 20},
+    {"id": "online_20", "name": "形影不离",   "desc": "在线 20 分钟",  "target": 20,"stat": "online", "reward": 30},
+    {"id": "study_1",   "name": "专注时刻",   "desc": "学习 1 次",     "target": 1, "stat": "study",  "reward": 15},
+    {"id": "study_2",   "name": "求知若渴",   "desc": "学习 2 次",     "target": 2, "stat": "study",  "reward": 25},
+    {"id": "study_3",   "name": "学霸模式",   "desc": "学习 3 次",     "target": 3, "stat": "study",  "reward": 30},
+    {"id": "chat_1",    "name": "有问必答",   "desc": "聊天 1 次",     "target": 1, "stat": "chat",   "reward": 10},
+    {"id": "chat_2",    "name": "日常问候",   "desc": "聊天 2 次",     "target": 2, "stat": "chat",   "reward": 15},
+    {"id": "chat_3",    "name": "话匣子",     "desc": "聊天 3 次",     "target": 3, "stat": "chat",   "reward": 20},
+]
+
+
+def _pick_daily_tasks(date_str: str) -> list[dict]:
+    """根据日期确定性地从池中选出 6 个轮换任务 + 1 个固定任务 = 7 个"""
+    d = date.fromisoformat(date_str)
+    doy = d.timetuple().tm_yday
+    by_stat: dict[str, list] = {}
+    for t in _TASK_POOL:
+        by_stat.setdefault(t["stat"], []).append(t)
+    selected = []
+    for i, stat in enumerate(sorted(by_stat.keys())):
+        options = by_stat[stat]
+        selected.append(options[(doy + i) % len(options)])
+    return _TASK_ALWAYS + selected
+
+
+DAILY_TASKS = _pick_daily_tasks(str(date.today()))
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -60,6 +94,8 @@ ACHIEVEMENTS = [
     {"id": "sign_7",        "name": "签到达人",     "desc": "连续签到 7 天",         "check": lambda s: s.get("sign_streak", 0) >= 7,   "reward": 50},
     {"id": "intimacy_max",  "name": "心意相通",     "desc": "亲密度达到 100",        "check": lambda s: s.get("intimacy", 0) >= 100,    "reward": 80},
     {"id": "coins_500",     "name": "小富翁",       "desc": "累计获得 500 金币",     "check": lambda s: s.get("total_coins", 0) >= 500, "reward": 50},
+    {"id": "study_10",      "name": "学海无涯",     "desc": "累计学习 10 次",        "check": lambda s: s.get("total_study", 0) >= 10,  "reward": 60},
+    {"id": "chat_20",       "name": "知心好友",     "desc": "累计聊天 20 次",        "check": lambda s: s.get("total_chat", 0) >= 20,   "reward": 60},
 ]
 
 
@@ -87,7 +123,7 @@ class GameSystems:
         self._data = _default_data()
         self._today_stats = {
             "feed": 0, "pet": 0, "play": 0,
-            "online": 0, "login": 1,
+            "online": 0, "login": 1, "study": 0, "chat": 0,
         }
         self._total_coins_earned = 0
         self.load()
@@ -155,19 +191,19 @@ class GameSystems:
 
     # ── 每日任务 ─────────────────────────────────────────────────────
     def _init_today_tasks(self):
+        global DAILY_TASKS
         today = str(date.today())
         t = self._data["tasks"]
         if t["date"] != today:
+            DAILY_TASKS = _pick_daily_tasks(today)
             t["date"] = today
             t["progress"] = {task["id"]: 0 for task in DAILY_TASKS}
             t["claimed"] = []
-            # login 任务自动完成
             t["progress"]["login"] = 1
 
     def record_action(self, action: str, amount: int = 1):
-        """记录一次动作，action 是 feed/pet/play/online"""
+        """记录一次动作，action 是 feed/pet/play/online/study/chat"""
         self._today_stats[action] = self._today_stats.get(action, 0) + amount
-        # 更新任务进度
         for task in DAILY_TASKS:
             if task["stat"] == action:
                 self._data["tasks"]["progress"][task["id"]] = self._today_stats[action]
@@ -217,6 +253,8 @@ class GameSystems:
             "intimacy": getattr(pet_state, "intimacy", 0),
             "sign_streak": self._data["sign_in"]["streak"],
             "total_coins": self._total_coins_earned,
+            "total_study": getattr(pet_state, "total_study_times", 0),
+            "total_chat": getattr(pet_state, "total_chat_times", 0),
         }
         newly = []
         for ach in ACHIEVEMENTS:
@@ -241,6 +279,8 @@ class GameSystems:
             "intimacy": getattr(pet_state, "intimacy", 0),
             "sign_streak": self._data["sign_in"]["streak"],
             "total_coins": self._total_coins_earned,
+            "total_study": getattr(pet_state, "total_study_times", 0),
+            "total_chat": getattr(pet_state, "total_chat_times", 0),
         }
         result = []
         for ach in ACHIEVEMENTS:

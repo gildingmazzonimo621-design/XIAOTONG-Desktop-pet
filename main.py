@@ -1288,6 +1288,7 @@ class PetWindow(QWidget):
         self.renderer.trigger("study")
         self._reset_walk_timer()
         self.game.record_action("study")
+        self.state.total_study_times += 1
         self.state.energy = max(0, self.state.energy - 5)
         self.state.exp += 5
         self._say(_pick("study"), mood="normal")

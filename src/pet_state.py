@@ -57,6 +57,8 @@ class PetState:
         self.total_mouse_clicks: int = 0     # 累计鼠标点击数（存档）
         self.total_pet_times: int = 0        # 累计被摸次数（存档）
         self.total_feed_times: int = 0       # 累计喂食次数（存档）
+        self.total_study_times: int = 0      # 累计学习次数（存档）
+        self.total_chat_times: int = 0       # 累计聊天次数（存档）
         self.total_online_seconds: float = 0 # 累计在线秒数（存档）
 
         # 本次会话新增量（不存档，关闭后清零）
@@ -169,6 +171,8 @@ class PetState:
             "total_mouse_clicks": self.total_mouse_clicks,
             "total_pet_times": self.total_pet_times,
             "total_feed_times": self.total_feed_times,
+            "total_study_times": self.total_study_times,
+            "total_chat_times": self.total_chat_times,
             "total_online_seconds": self.total_online_seconds,
         }
         try:
@@ -202,6 +206,8 @@ class PetState:
             self.total_mouse_clicks = data.get("total_mouse_clicks", 0)
             self.total_pet_times = data.get("total_pet_times", 0)
             self.total_feed_times = data.get("total_feed_times", 0)
+            self.total_study_times = data.get("total_study_times", 0)
+            self.total_chat_times = data.get("total_chat_times", 0)
             self.total_online_seconds = data.get("total_online_seconds", 0.0)
         except Exception:
             self.is_new = True

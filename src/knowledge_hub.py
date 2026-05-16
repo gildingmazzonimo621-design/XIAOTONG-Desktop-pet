@@ -74,23 +74,6 @@ def _time_ago(ts):
         return datetime.fromtimestamp(ts).strftime("%m月%d日")
 
 
-def _day_key(ts):
-    """时间戳 → 日期分组键"""
-    if not ts:
-        return "更早"
-    dt = datetime.fromtimestamp(ts)
-    today = datetime.now().date()
-    d = dt.date()
-    if d == today:
-        return "今天"
-    elif (today - d).days == 1:
-        return "昨天"
-    elif (today - d).days < 7:
-        return f"{(today - d).days} 天前"
-    else:
-        return dt.strftime("%m月%d日")
-
-
 def _source_label(src):
     """来源代码 → 显示标签"""
     return {"chat": "对话提取", "explicit": "对话提取", "freq": "对话提取",

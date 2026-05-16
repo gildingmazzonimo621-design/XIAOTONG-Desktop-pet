@@ -115,24 +115,9 @@ class PetAnimator:
         else:
             self.action_timer = random.uniform(2, 5)
 
-    def trigger_action(self, action, duration=3.0):
-        self.special_action = action
-        self.special_timer = duration
-
-    def get_walk_delta(self):
-        # 保证为正（向右）
-        return abs(self.walk_direction * self.walk_speed)
-
     def get_breathe_offset(self):
         # 取消上下呼吸效果
         return 0.0
-
-    def get_emotion_str(self, mood):
-        return {
-            PetMood.HAPPY: "happy", PetMood.NORMAL: "normal",
-            PetMood.SAD: "sad", PetMood.HUNGRY: "hungry",
-            PetMood.SLEEPY: "sleepy", PetMood.SLEEPING: "normal",
-        }.get(mood, "normal")
 
     def get_action_str(self, action):
         return {

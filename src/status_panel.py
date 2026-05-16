@@ -4,7 +4,7 @@
 import os, sys, re, html as _html_mod
 from PyQt5.QtCore import Qt, pyqtSignal, QRectF, QPoint, QTimer, QEvent
 from PyQt5.QtGui import (QFont, QColor, QPainter, QLinearGradient, QBrush,
-                          QPainterPath, QPen, QPixmap)
+                          QPainterPath, QPen, QPixmap, QImage)
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame,
     QInputDialog, QFileDialog, QSizePolicy, QApplication,
@@ -495,24 +495,53 @@ class StatusPanel(QWidget):
 
     # ════════════════════  任务页  ════════════════════════════
     def _pg_tasks(self):
-        L=self._cl; L.addWidget(_lbl("📋 每日任务",13,T1,True)); L.addSpacing(8)
-        if not self._gs: L.addWidget(_lbl("系统未初始化",11,T3)); L.addStretch(); return
-        for t in self._gs.get_tasks_status():
-            c=QWidget(); c.setStyleSheet(f"background:{CARD};border-radius:12px;border:1px solid {BD};")
-            cl=QVBoxLayout(c); cl.setContentsMargins(12,10,12,10); cl.setSpacing(4)
-            tr=QHBoxLayout(); tr.addWidget(_lbl(t["name"],12,T1,True)); tr.addStretch()
-            if t["claimed"]:
-                tr.addWidget(_lbl("✅ 已领取",10,"#7cc8a0"))
-            elif t["done"]:
-                cb=QPushButton("领取"); cb.setFixedSize(56,26)
-                cb.setStyleSheet(f"QPushButton{{background:#fff3e0;color:#e65100;border:1px solid #ffcc80;border-radius:8px;font-size:11px;}}"
-                                 f"QPushButton:hover{{background:#ffe0b2;}}")
-                cb.clicked.connect(lambda _=None,tid=t["id"]:self._claim(tid)); tr.addWidget(cb)
-            cl.addLayout(tr)
-            cl.addWidget(_lbl(f"{t['desc']}　{t['progress']}/{t['target']}　🪙+{t['reward']}",10,T2))
-            bar=GradBar("#f0b060","#f8d090"); bar.set_value(int(t["progress"]/t["target"]*100) if t["target"]>0 else 0)
-            cl.addWidget(bar); L.addWidget(c); L.addSpacing(2)
-        L.addStretch()
+        L=self._cl
+        w=QWidget(); w.setStyleSheet("background:transparent;border:none;")
+        sl=QVBoxLayout(w); sl.setContentsMargins(0,2,4,0); sl.setSpacing(14)
+        sl.addWidget(_lbl("📋 每日任务",13,T1,True))
+        if not self._gs:
+            sl.addWidget(_lbl("系统未初始化",11,T3)); sl.addStretch()
+        else:
+            tasks = self._gs.get_tasks_status()
+            for t in tasks:
+                if t["done"] and not t["claimed"]:
+                    self._gs.claim_task(t["id"])
+                    t["claimed"] = True
+            if any(t["done"] for t in tasks):
+                self._coin.setText(f"🪙 {self._gs.coins}")
+            tasks.sort(key=lambda t: 1 if t["done"] else 0)
+            for t in tasks:
+                done = t["done"]
+                c=QWidget()
+                if done:
+                    c.setStyleSheet(f"background:#f6f9f7;border-radius:14px;border:1.5px solid #dce8df;")
+                else:
+                    c.setStyleSheet(f"background:{CARD};border-radius:14px;border:1.5px solid {BD};")
+                cl=QVBoxLayout(c); cl.setContentsMargins(14,14,14,14); cl.setSpacing(5)
+                tr=QHBoxLayout(); tr.setSpacing(6)
+                if done:
+                    tr.addWidget(_lbl(t["name"],11,"#9bb8a0",True)); tr.addStretch()
+                    tr.addWidget(_lbl("✅",11,"#9bb8a0"))
+                else:
+                    tr.addWidget(_lbl(t["name"],11,T1,True)); tr.addStretch()
+                    tr.addWidget(_lbl(f"{t['progress']}/{t['target']}",9,T3))
+                cl.addLayout(tr)
+                dr=QHBoxLayout(); dr.setSpacing(6)
+                if done:
+                    dr.addWidget(_lbl(t['desc'],9,"#b0c4b4"))
+                    dr.addStretch()
+                    dr.addWidget(_lbl(f"🪙+{t['reward']}",9,"#b0c4b4"))
+                else:
+                    dr.addWidget(_lbl(t['desc'],9,T2))
+                    dr.addStretch()
+                    dr.addWidget(_lbl(f"🪙+{t['reward']}",9,TB))
+                cl.addLayout(dr)
+                if not done:
+                    bar=GradBar("#f0b060","#f8d090"); bar.setFixedHeight(7)
+                    bar.set_value(int(t["progress"]/t["target"]*100) if t["target"]>0 else 0)
+                    cl.addWidget(bar)
+                sl.addWidget(c)
+        L.addWidget(w,1)
 
     # ════════════════════  背包页  ════════════════════════════
     def _pg_bag(self):
@@ -701,36 +730,46 @@ class StatusPanel(QWidget):
     # ════════════════════  成就页  ════════════════════════════
     def _pg_ach(self):
         L=self._cl
-        sa=QScrollArea(); sa.setWidgetResizable(True); sa.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        L.addWidget(_lbl("🏅 成就",13,T1,True)); L.addSpacing(6)
+        if not self._gs or not self._ps:
+            L.addWidget(_lbl("系统未初始化",11,T3)); L.addStretch(); return
+        sa=QScrollArea(); sa.setWidgetResizable(True)
+        sa.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         sa.setStyleSheet(
             f"QScrollArea{{border:none;background:transparent;}}"
-            f"QScrollBar:vertical{{width:5px;background:{CARD2};}}"
+            f"QScrollBar:vertical{{width:5px;background:{CARD2};border-radius:2px;}}"
             f"QScrollBar::handle:vertical{{background:{BD};border-radius:2px;}}"
             f"QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{{height:0px;}}")
         sw=QWidget(); sw.setStyleSheet("background:transparent;border:none;")
-        sl=QVBoxLayout(sw); sl.setContentsMargins(0,0,4,0); sl.setSpacing(6)
-        sl.addWidget(_lbl("成就",13,T1,True)); sl.addSpacing(4)
-        if not self._gs or not self._ps:
-            sl.addWidget(_lbl("系统未初始化",11,T3)); sl.addStretch()
-        else:
-            for a in self._gs.get_achievements_status(self._ps):
-                c=QWidget(); c.setMinimumHeight(52)
-                c.setStyleSheet(f"background:{'#f0faf0' if a['unlocked'] else CARD};border-radius:12px;border:1px solid {BD};")
-                cl=QHBoxLayout(c); cl.setContentsMargins(12,8,12,8); cl.setSpacing(10)
-                icon_lbl=QLabel("🏆" if a["unlocked"] else "🔒")
-                icon_lbl.setFont(QFont("Microsoft YaHei",14)); icon_lbl.setFixedWidth(28)
-                icon_lbl.setStyleSheet("background:transparent;border:none;")
-                icon_lbl.setAlignment(Qt.AlignCenter)
-                cl.addWidget(icon_lbl)
-                iv=QVBoxLayout(); iv.setSpacing(2)
-                name_l=_lbl(a["name"],11,T1 if a["unlocked"] else T3,True)
-                name_l.setMinimumHeight(20)
-                iv.addWidget(name_l)
-                desc_l=_lbl(f"{a['desc']}  +{a['reward']}币",9,T2 if a["unlocked"] else T3)
-                desc_l.setMinimumHeight(18); desc_l.setWordWrap(True)
-                iv.addWidget(desc_l)
-                cl.addLayout(iv,1); sl.addWidget(c)
-            sl.addStretch()
+        sl=QVBoxLayout(sw); sl.setContentsMargins(0,2,4,0); sl.setSpacing(10)
+        for a in self._gs.get_achievements_status(self._ps):
+            c=QWidget()
+            if a["unlocked"]:
+                c.setStyleSheet(f"background:#fffbf0;border-radius:14px;border:1.5px solid #f0d8a0;")
+            else:
+                c.setStyleSheet(f"background:{CARD};border-radius:14px;border:1.5px solid {BD};")
+            cl=QHBoxLayout(c); cl.setContentsMargins(14,10,14,10); cl.setSpacing(10)
+            icon_lbl=QLabel("🏆" if a["unlocked"] else "🔒")
+            icon_lbl.setFont(QFont("Microsoft YaHei",15 if a["unlocked"] else 12))
+            icon_lbl.setFixedWidth(30)
+            icon_lbl.setStyleSheet("background:transparent;border:none;")
+            icon_lbl.setAlignment(Qt.AlignCenter)
+            cl.addWidget(icon_lbl)
+            iv=QVBoxLayout(); iv.setSpacing(2)
+            name_txt = a["name"] + " ✓" if a["unlocked"] else a["name"]
+            nl=_lbl(name_txt,11 if a["unlocked"] else 10,T1 if a["unlocked"] else T3,True)
+            if a["unlocked"]:
+                nl.setStyleSheet(f"color:{T1};background:transparent;border:none;padding:0;margin:0;")
+                nl.setText(f'{a["name"]} <span style="color:#e03030;font-weight:bold;">✓</span>')
+                nl.setTextFormat(Qt.RichText)
+            iv.addWidget(nl)
+            dr=QHBoxLayout(); dr.setSpacing(0)
+            dr.addWidget(_lbl(a['desc'],9,T2 if a["unlocked"] else T3))
+            dr.addStretch()
+            dr.addWidget(_lbl(f"+{a['reward']}🪙",9,"#c8960a" if a["unlocked"] else T3))
+            iv.addLayout(dr)
+            cl.addLayout(iv,1); sl.addWidget(c)
+        sl.addStretch()
         sa.setWidget(sw); L.addWidget(sa,1)
 
     # ════════════════════  聊天页  ════════════════════════════
@@ -950,6 +989,11 @@ class StatusPanel(QWidget):
         # 实时发送的消息，msg_index 暂设 -1，回复后刷新
         self._add_chat_bubble(msg, True, msg_index=-1)
 
+        if self._gs:
+            self._gs.record_action("chat")
+        if self._ps:
+            self._ps.total_chat_times += 1
+
         if not self._cs or not self._cs.enabled:
             self._add_chat_bubble("还没配置 API 呢~ 去「设置」页填一下吧！", False)
             return
@@ -1066,6 +1110,82 @@ class StatusPanel(QWidget):
             mi=self._cs.get_memory_info()
             L.addSpacing(4)
             L.addWidget(_lbl(f"{mi['facts_count']} 条记忆  ·  {mi['recent_count']//2} 轮对话",9,T3))
+
+        # ── 赞赏 + 关于（左右两栏）──
+        L.addSpacing(20); L.addWidget(_div()); L.addSpacing(14)
+        footer = QHBoxLayout(); footer.setContentsMargins(10, 0, 10, 0)
+
+        # 左栏：赞赏
+        left_col = QVBoxLayout(); left_col.setSpacing(6)
+        left_col.setAlignment(Qt.AlignCenter)
+        tip_title = _lbl("☕ 请作者喝杯咖啡", 9, T2)
+        tip_title.setAlignment(Qt.AlignCenter)
+        left_col.addWidget(tip_title)
+        import os as _os
+        _qr_path = _os.path.join(_os.path.dirname(_os.path.dirname(__file__)), "shoukuanma.jpg")
+        if _os.path.exists(_qr_path):
+            qr_img = QImage(_qr_path)
+            bg_c = QColor(BG)
+            for y in range(qr_img.height()):
+                for x in range(qr_img.width()):
+                    px = QColor(qr_img.pixel(x, y))
+                    if px.red() > 200 and px.green() > 200 and px.blue() > 200:
+                        qr_img.setPixelColor(x, y, bg_c)
+            qr_lbl = QLabel()
+            qr_pix = QPixmap.fromImage(qr_img).scaled(
+                120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            qr_lbl.setPixmap(qr_pix)
+            qr_lbl.setFixedSize(qr_pix.size())
+            qr_lbl.setAlignment(Qt.AlignCenter)
+            qr_lbl.setStyleSheet("background:transparent;border:none;")
+            left_col.addWidget(qr_lbl, 0, Qt.AlignCenter)
+        footer.addLayout(left_col)
+
+        # 竖分割线
+        vdiv = QFrame(); vdiv.setFrameShape(QFrame.VLine)
+        vdiv.setStyleSheet(f"color:{BD};")
+        vdiv.setFixedWidth(1)
+        footer.addSpacing(12); footer.addWidget(vdiv); footer.addSpacing(12)
+
+        # 右栏：关于
+        right_col = QVBoxLayout(); right_col.setSpacing(12)
+        right_col.setAlignment(Qt.AlignVCenter)
+        about_ver = _lbl("版本号：v1.0.0", 9, T3)
+        about_ver.setAlignment(Qt.AlignLeft)
+        right_col.addWidget(about_ver)
+        about_author = _lbl("by  WWW.没有COM", 9, T2)
+        about_author.setAlignment(Qt.AlignLeft)
+        right_col.addWidget(about_author)
+        wx_row = QHBoxLayout(); wx_row.setSpacing(4)
+        wx_icon = QLabel()
+        wx_pix = QPixmap(18, 16); wx_pix.fill(QColor(0, 0, 0, 0))
+        _p = QPainter(wx_pix)
+        _p.setRenderHint(QPainter.Antialiasing)
+        _p.setPen(QPen(QColor("#07c160"), 1.4)); _p.setBrush(Qt.NoBrush)
+        p1 = QPainterPath()
+        p1.addRoundedRect(0.8, 3.0, 10.0, 8.0, 3.0, 3.0)
+        p1.moveTo(3.5, 11.0); p1.lineTo(1.5, 14.0)
+        _p.drawPath(p1)
+        _p.setPen(Qt.NoPen); _p.setBrush(QBrush(QColor("#07c160")))
+        _p.drawEllipse(3, 5, 2, 2); _p.drawEllipse(7, 5, 2, 2)
+        _p.setPen(QPen(QColor("#07c160"), 1.2)); _p.setBrush(Qt.NoBrush)
+        p2 = QPainterPath()
+        p2.addRoundedRect(7.5, 0.8, 9.5, 7.5, 2.8, 2.8)
+        p2.moveTo(14.5, 8.3); p2.lineTo(16.0, 11.0)
+        _p.drawPath(p2)
+        _p.setPen(Qt.NoPen); _p.setBrush(QBrush(QColor("#07c160")))
+        _p.drawEllipse(10, 3, 2, 2); _p.drawEllipse(13, 3, 2, 2)
+        _p.end()
+        wx_icon.setPixmap(wx_pix); wx_icon.setFixedSize(18, 16)
+        wx_icon.setStyleSheet("background:transparent;border:none;")
+        wx_row.addWidget(wx_icon)
+        wx_id = _lbl("xy12981118", 9, T3)
+        wx_id.setStyleSheet(f"color:{T3};background:transparent;border:none;padding:0;margin:0;")
+        wx_row.addWidget(wx_id); wx_row.addStretch()
+        right_col.addLayout(wx_row)
+        footer.addLayout(right_col)
+
+        L.addLayout(footer)
         L.addStretch()
 
     def _open_memory_window(self):
