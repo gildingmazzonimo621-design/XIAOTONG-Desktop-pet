@@ -173,17 +173,6 @@ class SpriteRenderer:
         self._pending: list[str] = []
         self._frozen_sleep: bool = False
         self._frozen_stay:  bool = False
-        self._freeze_idle_timer: float = 0.0
-
-        # 道具使用底图：icon_tray.png，缩放到与动画帧相同尺寸
-        self._item_base_px: QPixmap | None = None
-        _base_path = os.path.join(_root_dir(), "icons", "icon_tray.png")
-        if os.path.exists(_base_path):
-            _px = QPixmap(_base_path)
-            if not _px.isNull():
-                self._item_base_px = _px.scaled(
-                    self.size, self.size,
-                    Qt.KeepAspectRatio, Qt.SmoothTransformation)
 
         # 播完/冻结回调
         self.on_action_done: Callable[[str], None] | None = None
@@ -316,22 +305,12 @@ class SpriteRenderer:
             return
         self._pending.clear()
         self._frozen_stay = False
-        self._freeze_idle_timer = 0.0
         self._switch(action)
-
-    def trigger_pet(self): self.trigger("pet")
-    def trigger_eat(self): self.trigger("eat")
-
-    def freeze_to_idle(self, duration: float):
-        """使用道具时锁定显示 idle 第一帧 duration 秒，结束后自动恢复"""
-        self._freeze_idle_timer = duration
 
     # ------------------------------------------------------------------ #
     #  主更新                                                               #
     # ------------------------------------------------------------------ #
     def update(self, dt: float, state_action: str):
-        if self._freeze_idle_timer > 0:
-            self._freeze_idle_timer -= dt
 
         # A: sleep 冻结中 ─────────────────────────────────────────────────
         if self._frozen_sleep:
@@ -431,13 +410,9 @@ class SpriteRenderer:
         rot   = math.degrees(tr.get("rotation", 0.0))
         oy    = tr.get("offset_y", 0.0)
 
-        if self._freeze_idle_timer > 0:
-            px_cur = self._item_base_px or self._get_px("idle", 0)
-            blend, px_prev = 0.0, None
-        else:
-            px_cur  = self._get_px(self._action, self._frame_i)
-            blend   = self._blend_remain / self.BLEND_FRAMES if self._blend_remain > 0 else 0.0
-            px_prev = self._get_px(self._prev_action, self._prev_frame_i) if blend > 0 else None
+        px_cur  = self._get_px(self._action, self._frame_i)
+        blend   = self._blend_remain / self.BLEND_FRAMES if self._blend_remain > 0 else 0.0
+        px_prev = self._get_px(self._prev_action, self._prev_frame_i) if blend > 0 else None
 
         if px_cur is None and px_prev is None:
             return
@@ -454,11 +429,6 @@ class SpriteRenderer:
         if px_cur:
             painter.setOpacity(1.0 - blend)
             self._blit(painter, px_cur)
-        if self._freeze_idle_timer > 0 and self._action in self.ITEM_PREFIXES:
-            px_item = self._get_px(self._action, self._frame_i)
-            if px_item:
-                painter.setOpacity(1.0)
-                self._blit(painter, px_item)
         painter.setOpacity(1.0)
         painter.restore()
 

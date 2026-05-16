@@ -551,8 +551,7 @@ class PetWindow(QWidget):
                 self.renderer._action in getattr(self.renderer, 'ONESHOT_ALL', set()) or
                 getattr(self.renderer, '_frozen_sleep', False) or
                 getattr(self.renderer, '_frozen_stay', False) or
-                bool(getattr(self.renderer, '_pending', [])) or
-                getattr(self.renderer, '_freeze_idle_timer', 0) > 0
+                bool(getattr(self.renderer, '_pending', []))
             ))
         )
         animator_blocked = renderer_busy or self._dragging or self._is_snapped
@@ -880,12 +879,9 @@ class PetWindow(QWidget):
         # ── 判断是否 idle 状态（需要画眼睛跟随） ────────────────────
         cur_action = getattr(self.renderer, '_action', 'idle')
         frozen_sleep = getattr(self.renderer, '_frozen_sleep', False)
-        # idle 且非物理状态 → 画眼睛跟随；睡觉冻结 → 交给 renderer 保持最后一帧
-        freeze_active = getattr(self.renderer, '_freeze_idle_timer', 0) > 0
         is_item_anim = cur_action.startswith('item_')
 
-        # 道具动画 / freeze 期间锁定 transform，消除 squash/bob 带来的跳动
-        if freeze_active or is_item_anim:
+        if is_item_anim:
             transform = {
                 "scale_x": 1.0, "scale_y": 1.0,
                 "rotation": 0.0, "offset_y": 0.0,
@@ -894,7 +890,7 @@ class PetWindow(QWidget):
 
         is_idle = (cur_action == 'idle' and not is_physics
                    and not frozen_sleep and not self.state.is_sleeping
-                   and not freeze_active and not is_item_anim)
+                   and not is_item_anim)
 
         if is_idle:
             if self._idle_noeyes_px is not None:
