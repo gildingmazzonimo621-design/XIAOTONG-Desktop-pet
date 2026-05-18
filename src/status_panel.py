@@ -57,6 +57,12 @@ _ITEM_ACCENT = {
 }
 _ITEM_ACCENT_DEFAULT = ("#b09480", "#f5ede4")
 
+_TASK_ICON = {
+    "feed": "🍔", "pet": "✋", "play": "🏸", "cat": "🐱",
+    "online": "⏱", "study": "📖", "chat": "💬", "sleep": "💤",
+    "login": "📅",
+}
+
 def _asset(n):
     """定位打包时捆绑的只读资源（icons/ 等）"""
     b = sys._MEIPASS if getattr(sys,"frozen",False) else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -545,6 +551,7 @@ class StatusPanel(QWidget):
                     t["claimed"] = True
             if any(t["done"] for t in tasks):
                 self._coin.setText(f"💰 {self._gs.coins}")
+            tasks = [t for t in tasks if t["id"] != "login"]
             tasks.sort(key=lambda t: 1 if t["done"] else 0)
             for t in tasks:
                 done = t["done"]
@@ -553,13 +560,14 @@ class StatusPanel(QWidget):
                     c.setStyleSheet(f"background:#f6f9f7;border-radius:14px;border:1.5px solid #dce8df;")
                 else:
                     c.setStyleSheet(f"background:{CARD};border-radius:14px;border:1.5px solid {BD};")
-                cl=QVBoxLayout(c); cl.setContentsMargins(14,14,14,14); cl.setSpacing(5)
+                cl=QVBoxLayout(c); cl.setContentsMargins(14,12,14,12); cl.setSpacing(3)
+                ico = _TASK_ICON.get(t.get("stat", ""), "📌")
                 tr=QHBoxLayout(); tr.setSpacing(6)
                 if done:
-                    tr.addWidget(_lbl(t["name"],11,"#9bb8a0",True)); tr.addStretch()
+                    tr.addWidget(_lbl(f"{ico} {t['name']}",11,"#9bb8a0",True)); tr.addStretch()
                     tr.addWidget(_lbl("✅",11,"#9bb8a0"))
                 else:
-                    tr.addWidget(_lbl(t["name"],11,T1,True)); tr.addStretch()
+                    tr.addWidget(_lbl(f"{ico} {t['name']}",11,T1,True)); tr.addStretch()
                     tr.addWidget(_lbl(f"{t['progress']}/{t['target']}",9,T3))
                 cl.addLayout(tr)
                 dr=QHBoxLayout(); dr.setSpacing(6)
@@ -1113,23 +1121,22 @@ class StatusPanel(QWidget):
         L=self._cl
 
         # 包在可滚动区域中，避免小窗/高 DPI 下内容被挤压
+        # 设置页内容已精确排列，隐藏滚动条防止其占宽导致反馈循环，滚轮仍可滚动
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll_area.setStyleSheet(
-            f"QScrollArea{{border:none;background:transparent;}}"
-            f"QScrollBar:vertical{{width:5px;background:{CARD2};}}"
-            f"QScrollBar::handle:vertical{{background:{BD};border-radius:2px;}}"
-            f"QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{{height:0px;}}")
+            f"QScrollArea{{border:none;background:transparent;}}")
         scroll_content = QWidget()
         scroll_content.setStyleSheet("background:transparent;border:none;")
         S = QVBoxLayout(scroll_content)
-        S.setContentsMargins(0, 0, 4, 0)
+        S.setContentsMargins(0, 0, 0, 0)
         S.setSpacing(0)
 
         is_first = self._cs and self._cs.is_first_launch
         title = "首次使用 — 配置 API" if is_first else "API 设置"
-        S.addWidget(_lbl(title,13,T1,True)); S.addSpacing(6)
+        S.addWidget(_lbl(title,13,T1,True)); S.addSpacing(16)
 
         if is_first:
             hint = _lbl("欢迎使用桌宠！请先配置你的 AI 接口信息：",10,"#c4784a")
@@ -1158,7 +1165,7 @@ class StatusPanel(QWidget):
                 f"QPushButton:hover{{color:#c06060;background:#fde8e8;}}")
             clr.clicked.connect(inp.clear)
             row.addWidget(clr)
-            S.addLayout(row); S.addSpacing(8)
+            S.addLayout(row); S.addSpacing(14)
             return inp
 
         url_ph = "首次使用，请输入你的 API 地址" if is_first else "https://api.openai.com/v1 或中转站地址"
@@ -1167,7 +1174,7 @@ class StatusPanel(QWidget):
         self._cfg_key=_input("API Key", config.get("api_key",""), key_ph, is_password=True)
         self._cfg_model=_input("模型名称", config.get("model",""),
                                "gpt-3.5-turbo / deepseek-chat / claude-3.5-sonnet")
-        S.addSpacing(12)
+        S.addSpacing(22)
         br=QHBoxLayout(); br.setSpacing(10)
         save_btn=QPushButton("保存设置"); save_btn.setFixedHeight(38)
         save_btn.setFont(QFont("Microsoft YaHei",11,QFont.Bold))
@@ -1186,13 +1193,13 @@ class StatusPanel(QWidget):
         br.addWidget(test_btn)
         S.addLayout(br)
 
-        S.addSpacing(8)
+        S.addSpacing(16)
         status = "已配置" if (self._cs and self._cs.enabled) else "未配置"
         self._cfg_status=_lbl(f"当前状态：{status}",10,T2)
         self._cfg_status.setWordWrap(True)
         S.addWidget(self._cfg_status)
 
-        S.addSpacing(20); S.addWidget(_div()); S.addSpacing(16)
+        S.addSpacing(26); S.addWidget(_div()); S.addSpacing(22)
 
         # 记忆管理入口按钮
         mem_btn=QPushButton("📝 记忆管理"); mem_btn.setFixedHeight(42)
@@ -1205,19 +1212,20 @@ class StatusPanel(QWidget):
         S.addWidget(mem_btn)
         if self._cs:
             mi=self._cs.get_memory_info()
-            S.addSpacing(4)
+            S.addSpacing(12)
             S.addWidget(_lbl(f"{mi['facts_count']} 条记忆  ·  {mi['recent_count']//2} 轮对话",9,T3))
 
         # ── 赞赏 + 关于（左右两栏）──
-        S.addSpacing(20); S.addWidget(_div()); S.addSpacing(14)
+        S.addSpacing(26); S.addWidget(_div()); S.addSpacing(18)
         footer = QHBoxLayout(); footer.setContentsMargins(10, 0, 10, 0)
 
         # 左栏：赞赏
-        left_col = QVBoxLayout(); left_col.setSpacing(6)
+        left_col = QVBoxLayout(); left_col.setSpacing(10)
         left_col.setAlignment(Qt.AlignCenter)
         tip_title = _lbl("☕ 请作者喝杯咖啡", 9, T2)
         tip_title.setAlignment(Qt.AlignCenter)
         left_col.addWidget(tip_title)
+        left_col.addSpacing(4)
         _qr_path = _asset("shoukuanma.jpg")
         if os.path.exists(_qr_path):
             qr_img = QImage(_qr_path)
@@ -1243,9 +1251,10 @@ class StatusPanel(QWidget):
         vdiv.setFixedWidth(1)
         footer.addSpacing(12); footer.addWidget(vdiv); footer.addSpacing(12)
 
-        # 右栏：关于
-        right_col = QVBoxLayout(); right_col.setSpacing(12)
-        right_col.setAlignment(Qt.AlignVCenter)
+        # 右栏：关于（顶部对齐二维码 y 轴）
+        right_col = QVBoxLayout(); right_col.setSpacing(16)
+        right_col.setAlignment(Qt.AlignTop)
+        right_col.setContentsMargins(0, 48, 0, 0)
         about_ver = _lbl("版本号：v1.0.0", 9, T3)
         about_ver.setAlignment(Qt.AlignLeft)
         right_col.addWidget(about_ver)

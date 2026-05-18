@@ -7,6 +7,15 @@ import sys
 import time
 from datetime import datetime
 
+# ── 单实例锁：阻止重复启动 ──────────────────────────────────────
+if sys.platform == "win32":
+    import ctypes
+    _mutex = ctypes.windll.kernel32.CreateMutexW(None, False, "XiaotongDesktopPet_SingleInstance")
+    if ctypes.windll.kernel32.GetLastError() == 183:
+        ctypes.windll.user32.MessageBoxW(
+            0, "桌宠已经在运行中了哦~\n请检查系统托盘 🐾", "蓝色小嗵", 0x40)
+        sys.exit(0)
+
 from PyQt5.QtCore import (Qt, QTimer, QPoint, QRectF, pyqtSignal)
 from PyQt5.QtGui import (QPainter, QIcon, QCursor, QColor, QFont,
                          QLinearGradient, QBrush, QFontMetrics)
@@ -45,6 +54,7 @@ from src.chat_service import ChatService
 from src.snap_system import SnapSystem, TASKBAR_MARGIN
 
 PET_SIZE = 210
+PET_WINDOW_MARGIN = 20   # 窗口四周透明 padding，_sync_window_pos 中用到
 FPS = 60
 SAVE_EVERY = 30
 
@@ -710,14 +720,15 @@ class PetWindow(QWidget):
         screen = QApplication.primaryScreen().geometry()
         sw, sh = float(screen.width()), float(screen.height())
 
-        if self._pet_y < 0:
-            self._pet_y = 0.0
+        # NOTE: _pet_y 最小值为 PET_WINDOW_MARGIN(20)，确保窗口上边缘不超出屏幕
+        if self._pet_y < PET_WINDOW_MARGIN:
+            self._pet_y = float(PET_WINDOW_MARGIN)
             self._throw_vy = abs(self._throw_vy) * self._WALL_BOUNCE
-        if self._pet_x < 0:
-            self._pet_x = 0.0
+        if self._pet_x < PET_WINDOW_MARGIN:
+            self._pet_x = float(PET_WINDOW_MARGIN)
             self._throw_vx = abs(self._throw_vx) * self._WALL_BOUNCE
-        if self._pet_x > sw - PET_SIZE:
-            self._pet_x = sw - PET_SIZE
+        if self._pet_x > sw - PET_SIZE - PET_WINDOW_MARGIN:
+            self._pet_x = sw - PET_SIZE - PET_WINDOW_MARGIN
             self._throw_vx = -abs(self._throw_vx) * self._WALL_BOUNCE
 
         ground = sh - PET_SIZE - 40
@@ -773,8 +784,9 @@ class PetWindow(QWidget):
 
     def _clamp_to_screen(self):
         screen = QApplication.primaryScreen().geometry()
-        min_x, max_x = 0.0, float(screen.width()  - PET_SIZE)
-        min_y, max_y = 0.0, float(screen.height() - PET_SIZE - 40)
+        min_x, max_x = float(PET_WINDOW_MARGIN), float(screen.width() - PET_SIZE - PET_WINDOW_MARGIN)
+        # NOTE: min_y 使用 PET_WINDOW_MARGIN 而非 0，确保窗口上边缘不超出屏幕顶部
+        min_y, max_y = float(PET_WINDOW_MARGIN), float(screen.height() - PET_SIZE - 40)
         is_walking = (hasattr(self.renderer, '_action') and
                       self.renderer._action == "walk")
         if self._pet_x < min_x: self._pet_x = min_x
@@ -827,13 +839,18 @@ class PetWindow(QWidget):
         else:
             self._pet_y = float(top - PET_SIZE / 2)
         self._pet_x = max(float(left), min(float(right) - PET_SIZE, self._pet_x))
-        # 确保不完全超出屏幕（吸附状态允许部分超出顶部，保持跟随窗口）
+        # 确保不完全超出屏幕
         screen = QApplication.primaryScreen().geometry()
         sw, sh = float(screen.width()), float(screen.height())
         min_x, max_x = 0.0, sw - PET_SIZE
         max_y = sh - PET_SIZE - TASKBAR_MARGIN
         self._pet_x = max(min_x, min(max_x, self._pet_x))
-        self._pet_y = min(max_y, self._pet_y)
+        # NOTE: 当窗口上边缘贴近屏幕顶部时，桌宠实际是「趴在屏幕上方」，
+        # 此时必须确保完整显示；否则允许部分超出顶部以跟随窗口。
+        if top < PET_SIZE * 0.4:
+            self._pet_y = max(float(PET_WINDOW_MARGIN), min(max_y, self._pet_y))
+        else:
+            self._pet_y = min(max_y, self._pet_y)
 
     # ── 绘制 ─────────────────────────────────────────────────────────
     def paintEvent(self, event):
@@ -1147,6 +1164,13 @@ class PetWindow(QWidget):
             if snap is not None:
                 self._pet_x = snap.snap_x
                 self._pet_y = snap.snap_y
+                # NOTE: 当吸附目标窗口上边缘贴近屏幕顶部时（如最大化窗口），
+                # 桌宠实际是「趴在屏幕上方」，需确保完整显示。
+                if snap.snap_y < float(PET_WINDOW_MARGIN):
+                    win_top = (snap.snap_y + 148.0) if snap.edge_type == "preview_top" \
+                              else (snap.snap_y + PET_SIZE / 2.0)
+                    if win_top < PET_SIZE * 0.4:
+                        self._pet_y = float(PET_WINDOW_MARGIN)
                 self._is_snapped = True
                 self._snap_target_type = snap.edge_type
                 self._snap_target_hwnd = snap.hwnd
@@ -1274,6 +1298,7 @@ class PetWindow(QWidget):
         self.renderer.trigger_priority("sleep")
         self._reset_walk_timer()
         self._say(msg, mood="sleepy")
+        self.game.record_action("sleep")
         self.panel.notify_action("sleep")
 
     def _on_wake(self):
@@ -1580,10 +1605,9 @@ class PetWindow(QWidget):
             px = pet_ix - pw - gap
         px = max(10, min(px, screen.width() - pw - 10))
 
-        # 面板 y：优先底部与桌宠底部对齐
-        py = pet_iy + PET_SIZE - ph
+        # 面板 y：垂直居中对齐桌宠中心
+        py = pet_iy + PET_SIZE // 2 - ph // 2
         if py < 10:
-            # 桌宠在屏幕上方，面板顶部与桌宠顶部对齐（而非被推到覆盖桌宠）
             py = max(10, pet_iy)
         py = min(py, screen.height() - ph - 10)
 

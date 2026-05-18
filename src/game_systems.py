@@ -51,20 +51,23 @@ _TASK_POOL = [
     {"id": "play_1",    "name": "游戏时光",   "desc": "玩游戏 1 次",   "target": 1, "stat": "play",   "reward": 10},
     {"id": "play_2",    "name": "双倍快乐",   "desc": "玩游戏 2 次",   "target": 2, "stat": "play",   "reward": 18},
     {"id": "play_3",    "name": "游戏达人",   "desc": "玩游戏 3 次",   "target": 3, "stat": "play",   "reward": 25},
-    {"id": "online_5",  "name": "短暂陪伴",   "desc": "在线 5 分钟",   "target": 5, "stat": "online", "reward": 10},
-    {"id": "online_10", "name": "忠实伙伴",   "desc": "在线 10 分钟",  "target": 10,"stat": "online", "reward": 20},
-    {"id": "online_20", "name": "形影不离",   "desc": "在线 20 分钟",  "target": 20,"stat": "online", "reward": 30},
     {"id": "study_1",   "name": "专注时刻",   "desc": "学习 1 次",     "target": 1, "stat": "study",  "reward": 15},
     {"id": "study_2",   "name": "求知若渴",   "desc": "学习 2 次",     "target": 2, "stat": "study",  "reward": 25},
     {"id": "study_3",   "name": "学霸模式",   "desc": "学习 3 次",     "target": 3, "stat": "study",  "reward": 30},
     {"id": "chat_1",    "name": "有问必答",   "desc": "聊天 1 次",     "target": 1, "stat": "chat",   "reward": 10},
     {"id": "chat_2",    "name": "日常问候",   "desc": "聊天 2 次",     "target": 2, "stat": "chat",   "reward": 15},
     {"id": "chat_3",    "name": "话匣子",     "desc": "聊天 3 次",     "target": 3, "stat": "chat",   "reward": 20},
+    {"id": "cat_1",     "name": "猫猫时光",   "desc": "变猫猫 1 次",   "target": 1, "stat": "cat",    "reward": 10},
+    {"id": "cat_2",     "name": "喵星人",     "desc": "变猫猫 2 次",   "target": 2, "stat": "cat",    "reward": 18},
+    {"id": "cat_3",     "name": "猫猫达人",   "desc": "变猫猫 3 次",   "target": 3, "stat": "cat",    "reward": 25},
+    {"id": "sleep_1",   "name": "小憩一下",   "desc": "睡觉 1 次",     "target": 1, "stat": "sleep",  "reward": 8},
+    {"id": "sleep_2",   "name": "规律作息",   "desc": "睡觉 2 次",     "target": 2, "stat": "sleep",  "reward": 18},
+    {"id": "sleep_3",   "name": "安睡达人",   "desc": "睡觉 3 次",     "target": 3, "stat": "sleep",  "reward": 25},
 ]
 
 
 def _pick_daily_tasks(date_str: str) -> list[dict]:
-    """根据日期确定性地从池中选出 6 个轮换任务 + 1 个固定任务 = 7 个"""
+    """根据日期确定性地从池中选出 7 个轮换任务 + 1 个固定任务 = 8 个"""
     d = date.fromisoformat(date_str)
     doy = d.timetuple().tm_yday
     by_stat: dict[str, list] = {}
@@ -122,8 +125,8 @@ class GameSystems:
     def __init__(self):
         self._data = _default_data()
         self._today_stats = {
-            "feed": 0, "pet": 0, "play": 0,
-            "online": 0, "login": 1, "study": 0, "chat": 0,
+            "feed": 0, "pet": 0, "play": 0, "cat": 0,
+            "online": 0, "login": 1, "study": 0, "chat": 0, "sleep": 0,
         }
         self._total_coins_earned = 0
         self.load()
@@ -217,6 +220,7 @@ class GameSystems:
             prog = self._data["tasks"]["progress"].get(tid, 0)
             result.append({
                 "id": tid,
+                "stat": task["stat"],
                 "name": task["name"],
                 "desc": task["desc"],
                 "progress": min(prog, task["target"]),
