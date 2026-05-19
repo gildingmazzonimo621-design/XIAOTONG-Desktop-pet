@@ -68,6 +68,17 @@ def _asset(n):
     b = sys._MEIPASS if getattr(sys,"frozen",False) else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(b, n)
 
+# ── DPI 等比缩放工具 ─────────────────────────────────────────
+_ui_scale = 1.0  # StatusPanel / MemoryWindow __init__ 中设置
+
+def _s(px):
+    """缩放像素值 — 面板内部布局尺寸"""
+    return max(1, round(px * _ui_scale))
+
+def _fs(pt):
+    """缩放字号 — 保证最小可读性"""
+    return max(7, round(pt * _ui_scale))
+
 # ── 工具控件 ────────────────────────────────────────────────
 class AvatarWidget(QWidget):
     clicked = pyqtSignal()
@@ -109,7 +120,7 @@ class AvatarWidget(QWidget):
 class GradBar(QWidget):
     def __init__(self,cs,ce,parent=None):
         super().__init__(parent); self._v=80; self._cs=cs; self._ce=ce
-        self.setFixedHeight(10); self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Fixed)
+        self.setFixedHeight(_s(10)); self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Fixed)
     def set_value(self,v): self._v=max(0,min(100,v)); self.update()
     def paintEvent(self,_):
         p=QPainter(self); p.setRenderHint(QPainter.Antialiasing)
@@ -123,11 +134,11 @@ def _div():
     f=QFrame(); f.setFixedHeight(1); f.setStyleSheet(f"background:{BD};border:none;"); return f
 
 def _lbl(t="",sz=12,c=T1,bold=False):
-    lb=QLabel(t); f=QFont("Microsoft YaHei",sz); f.setBold(bold); lb.setFont(f)
+    lb=QLabel(t); f=QFont("Microsoft YaHei",_fs(sz)); f.setBold(bold); lb.setFont(f)
     lb.setStyleSheet(f"color:{c};background:transparent;border:none;padding:0;margin:0;"); return lb
 
 def _ibtn(icon,label):
-    b=QPushButton(f"{icon}\n{label}"); b.setFixedHeight(52); b.setFont(QFont("Microsoft YaHei",9))
+    b=QPushButton(f"{icon}\n{label}"); b.setFixedHeight(_s(52)); b.setFont(QFont("Microsoft YaHei", _fs(9)))
     b.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
     b.setStyleSheet(f"QPushButton{{background:{CARD};color:{T2};border:1.5px solid {BD};border-radius:10px;padding:4px 0;}}"
                     f"QPushButton:hover{{background:{BGB};border-color:{BD2};color:{T1};}}"
@@ -152,19 +163,29 @@ def _clear_layout(layout):
 #  独立记忆管理窗口
 # ══════════════════════════════════════════════════════════════
 class MemoryWindow(QWidget):
-    MW, MH = 400, 560
+    _BASE_MW, _BASE_MH = 400, 560
+    _DESIGN_H = 1440   # 设计基准：2560×1440 @ 100% DPI
 
     def __init__(self, chat_service, parent=None):
         super().__init__(parent)
         self._cs = chat_service
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.Tool | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
+        # ── 根据屏幕逻辑高度等比缩放 ──
+        from PyQt5.QtWidgets import QApplication
+        scr = QApplication.primaryScreen()
+        logical_h = scr.geometry().height() if scr else 1440
+        avail_h = scr.availableGeometry().height() if scr else 1080
+        _scale = min(1.0, logical_h / self._DESIGN_H)
+        global _ui_scale; _ui_scale = _scale
+        self.MW = max(260, int(self._BASE_MW * _scale))
+        self.MH = max(360, int(self._BASE_MH * _scale))
+        self.MH = min(self.MH, avail_h - 60)
         self.setFixedSize(self.MW, self.MH)
         self._dp = QPoint(); self._dg = False
         # 居中显示
-        from PyQt5.QtWidgets import QApplication
-        scr = QApplication.primaryScreen().geometry()
-        self.move((scr.width() - self.MW) // 2, (scr.height() - self.MH) // 2)
+        scr_geo = scr.geometry() if scr else QApplication.desktop().screenGeometry()
+        self.move((scr_geo.width() - self.MW) // 2, (scr_geo.height() - self.MH) // 2)
         self._build()
 
     def mousePressEvent(self, e):
@@ -176,26 +197,26 @@ class MemoryWindow(QWidget):
     def _build(self):
         root = QWidget(self); root.setGeometry(0, 0, self.MW, self.MH); root.setObjectName("MR")
         root.setStyleSheet(f"QWidget#MR{{background:{BG};border-radius:20px;border:1.5px solid {BD};}}")
-        ml = QVBoxLayout(root); ml.setContentsMargins(16, 14, 16, 12); ml.setSpacing(0)
+        ml = QVBoxLayout(root); ml.setContentsMargins(_s(16), _s(14), _s(16), _s(12)); ml.setSpacing(0)
 
         # 标题栏
         h = QHBoxLayout()
         h.addWidget(_lbl("📝 记忆管理", 13, T1, True)); h.addStretch()
         mi = self._cs.get_memory_info()
         self._stat_lbl = _lbl(f"{mi['facts_count']} 条记忆", 10, T3)
-        h.addWidget(self._stat_lbl); h.addSpacing(8)
-        cb = QPushButton("✕"); cb.setFixedSize(28, 28)
+        h.addWidget(self._stat_lbl); h.addSpacing(_s(8))
+        cb = QPushButton("✕"); cb.setFixedSize(_s(28), _s(28))
         cb.setStyleSheet(f"QPushButton{{background:transparent;color:{T3};border:none;font-size:14px;border-radius:14px;}}"
                          f"QPushButton:hover{{background:{CARD2};color:{T2};}}")
         cb.clicked.connect(self.close); h.addWidget(cb)
-        ml.addLayout(h); ml.addSpacing(10)
+        ml.addLayout(h); ml.addSpacing(_s(10))
 
         # 记忆列表（可滚动）
         self._mem_widget = QWidget()
         self._mem_widget.setStyleSheet("background:transparent;border:none;")
         self._mem_layout = QVBoxLayout(self._mem_widget)
-        self._mem_layout.setContentsMargins(4, 4, 4, 4)
-        self._mem_layout.setSpacing(4)
+        self._mem_layout.setContentsMargins(_s(4), _s(4), _s(4), _s(4))
+        self._mem_layout.setSpacing(_s(4))
 
         sa = QScrollArea(); sa.setWidgetResizable(True)
         sa.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -210,14 +231,14 @@ class MemoryWindow(QWidget):
         self._rebuild()
 
         # 添加记忆
-        ml.addSpacing(10)
-        ml.addWidget(_lbl("手动添加记忆", 10, T2)); ml.addSpacing(4)
-        ar = QHBoxLayout(); ar.setSpacing(6)
+        ml.addSpacing(_s(10))
+        ml.addWidget(_lbl("手动添加记忆", 10, T2)); ml.addSpacing(_s(4))
+        ar = QHBoxLayout(); ar.setSpacing(_s(6))
         self._inp = _MultiLineInput("输入想让它记住的内容…")
         self._inp.submitted.connect(self._add)
         ar.addWidget(self._inp, 1)
-        ab = QPushButton("添加"); ab.setFixedSize(56, 36)
-        ab.setFont(QFont("Microsoft YaHei", 10, QFont.Bold))
+        ab = QPushButton("添加"); ab.setFixedSize(_s(56), _s(36))
+        ab.setFont(QFont("Microsoft YaHei", _fs(10), QFont.Bold))
         ab.setStyleSheet(
             f"QPushButton{{background:#e8d0c0;color:{T1};border:none;border-radius:10px;}}"
             f"QPushButton:hover{{background:#dcc0b0;}}")
@@ -225,9 +246,9 @@ class MemoryWindow(QWidget):
         ml.addLayout(ar)
 
         # 清空按钮
-        ml.addSpacing(10)
-        clr = QPushButton("清除所有记忆"); clr.setFixedHeight(36)
-        clr.setFont(QFont("Microsoft YaHei", 10))
+        ml.addSpacing(_s(10))
+        clr = QPushButton("清除所有记忆"); clr.setFixedHeight(_s(36))
+        clr.setFont(QFont("Microsoft YaHei", _fs(10)))
         clr.setStyleSheet(
             f"QPushButton{{background:#fbe9e7;color:#c62828;border:1px solid #ef9a9a;"
             f"border-radius:10px;padding:0 16px;}}"
@@ -252,13 +273,13 @@ class MemoryWindow(QWidget):
         else:
             for idx, fact in enumerate(reversed(facts)):
                 real_idx = len(facts) - 1 - idx
-                row = QHBoxLayout(); row.setContentsMargins(10, 4, 8, 4); row.setSpacing(8)
+                row = QHBoxLayout(); row.setContentsMargins(_s(10), _s(4), _s(8), _s(4)); row.setSpacing(_s(8))
                 txt = QLabel(fact)
-                txt.setFont(QFont("Microsoft YaHei", 10))
+                txt.setFont(QFont("Microsoft YaHei", _fs(10)))
                 txt.setWordWrap(True)
                 txt.setStyleSheet(f"color:{T1};background:transparent;border:none;padding:0;")
-                del_btn = QPushButton("×"); del_btn.setFixedSize(24, 24)
-                del_btn.setFont(QFont("Arial", 12, QFont.Bold))
+                del_btn = QPushButton("×"); del_btn.setFixedSize(_s(24), _s(24))
+                del_btn.setFont(QFont("Arial", _fs(12), QFont.Bold))
                 del_btn.setStyleSheet(
                     f"QPushButton{{background:transparent;color:{T3};border:none;"
                     f"border-radius:12px;}}"
@@ -305,8 +326,9 @@ class StatusPanel(QWidget):
     _test_result_signal=pyqtSignal(str)    # status text
     _action_reply_signal=pyqtSignal(str, str)  # reply, error (动作触发的 AI 回复)
 
-    PW = 420
-    PH_DEFAULT = 820   # 理想高度（100% DPI + 1080p）
+    _BASE_PW = 420
+    _BASE_PH = 820
+    _DESIGN_H = 1440   # 设计基准：2560×1440 @ 100% DPI
 
     # ── 聊天内容 → 期待动作 关键词映射 ──
     _ACTION_KEYWORDS: dict[str, list[str]] = {
@@ -331,11 +353,17 @@ class StatusPanel(QWidget):
         super().__init__(parent)
         self.setWindowFlags(Qt.WindowStaysOnTopHint|Qt.Tool|Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        # 动态面板高度：高 DPI 缩放会压缩逻辑屏幕像素，
-        # 1080p+150% 时逻辑高度仅 720px，固定 820 会溢出屏幕
+        # ── 根据屏幕逻辑高度等比缩放面板尺寸 ──
+        # AA_EnableHighDpiScaling 使逻辑分辨率随 DPI 缩小，
+        # 固定 420x820 在高 DPI 屏幕上会显得过大
         screen = QApplication.primaryScreen()
+        logical_h = screen.geometry().height() if screen else 1440
         avail_h = screen.availableGeometry().height() if screen else 1080
-        self.PH = min(self.PH_DEFAULT, avail_h - 60)
+        _scale = min(1.0, logical_h / self._DESIGN_H)
+        global _ui_scale; _ui_scale = _scale
+        self.PW = max(280, int(self._BASE_PW * _scale))
+        self.PH = max(450, int(self._BASE_PH * _scale))
+        self.PH = min(self.PH, avail_h - 60)
         self.setFixedSize(self.PW, self.PH)
         self._dp=QPoint(); self._dg=False
         self._gs=game_systems; self._cs=chat_service; self._ps=None
@@ -358,34 +386,34 @@ class StatusPanel(QWidget):
     def _build(self):
         root=QWidget(self); root.setGeometry(0,0,self.PW,self.PH); root.setObjectName("R")
         root.setStyleSheet(f"QWidget#R{{background:{BG};border-radius:20px;border:1.5px solid {BD};}}")
-        ml=QVBoxLayout(root); ml.setContentsMargins(16,14,16,12); ml.setSpacing(0)
+        ml=QVBoxLayout(root); ml.setContentsMargins(_s(16), _s(14), _s(16), _s(12)); ml.setSpacing(0)
 
         # 标题
         h=QHBoxLayout(); h.addWidget(_lbl("个人中心",12,T3))
         h.addStretch()
-        self._coin=_lbl("💰 0",12,TB,True); h.addWidget(self._coin); h.addSpacing(8)
-        cb=QPushButton("✕"); cb.setFixedSize(28,28)
+        self._coin=_lbl("💰 0",12,TB,True); h.addWidget(self._coin); h.addSpacing(_s(8))
+        cb=QPushButton("✕"); cb.setFixedSize(_s(28), _s(28))
         cb.setStyleSheet(f"QPushButton{{background:transparent;color:{T3};border:none;font-size:14px;border-radius:14px;}}"
                          f"QPushButton:hover{{background:{CARD2};color:{T2};}}")
         cb.clicked.connect(self.hide); h.addWidget(cb)
-        ml.addLayout(h); ml.addSpacing(8)
+        ml.addLayout(h); ml.addSpacing(_s(8))
 
         # Tab 栏
-        tr=QHBoxLayout(); tr.setSpacing(2)
+        tr=QHBoxLayout(); tr.setSpacing(_s(2))
         self._tbs={}
         for tid,nm in [("status","状态"),("tasks","任务"),("bag","背包"),("shop","商店"),("ach","成就"),("chat","聊天"),("settings","设置")]:
-            tb=QPushButton(nm); tb.setFixedHeight(30); tb.setFont(QFont("Microsoft YaHei",10))
+            tb=QPushButton(nm); tb.setFixedHeight(_s(30)); tb.setFont(QFont("Microsoft YaHei", _fs(10)))
             tb.setCursor(Qt.PointingHandCursor)
             tb.clicked.connect(lambda _=None,t=tid: self._go(t))
             tr.addWidget(tb); self._tbs[tid]=tb
-        ml.addLayout(tr); ml.addSpacing(8)
+        ml.addLayout(tr); ml.addSpacing(_s(8))
         self._style_tabs()
 
         # 内容区容器
         self._container=QWidget()
         self._container.setStyleSheet("background:transparent;border:none;")
         self._cl=QVBoxLayout(self._container)
-        self._cl.setContentsMargins(0,0,0,0); self._cl.setSpacing(6)
+        self._cl.setContentsMargins(_s(0), _s(0), _s(0), _s(0)); self._cl.setSpacing(_s(6))
         ml.addWidget(self._container,1)
         # 根据 _tab 初始页
         {"status":self._pg_status,"settings":self._pg_settings}.get(self._tab, self._pg_status)()
@@ -423,19 +451,19 @@ class StatusPanel(QWidget):
         scroll_content = QWidget()
         scroll_content.setStyleSheet("background:transparent;border:none;")
         S = QVBoxLayout(scroll_content)
-        S.setContentsMargins(0, 0, 4, 0)
+        S.setContentsMargins(_s(0), _s(0), _s(4), _s(0))
         S.setSpacing(0)
 
         # 头像行
-        hr=QHBoxLayout(); hr.setSpacing(14)
-        self._avatar=AvatarWidget(64); self._avatar.clicked.connect(self._pick_av)
+        hr=QHBoxLayout(); hr.setSpacing(_s(14))
+        self._avatar=AvatarWidget(_s(64)); self._avatar.clicked.connect(self._pick_av)
         # NOTE: AlignVCenter 让头像在头像行内垂直居中，避免贴顶显示
         hr.addWidget(self._avatar,0,Qt.AlignVCenter)
-        ic=QVBoxLayout(); ic.setSpacing(4)
-        nr=QHBoxLayout(); nr.setSpacing(4)
+        ic=QVBoxLayout(); ic.setSpacing(_s(4))
+        nr=QHBoxLayout(); nr.setSpacing(_s(4))
         self.name_label=_lbl("嗵",15,T1,True)
         self.name_label.setSizePolicy(QSizePolicy.Preferred,QSizePolicy.Preferred)
-        rb=QPushButton("✏"); rb.setFixedSize(20,20)
+        rb=QPushButton("✏"); rb.setFixedSize(_s(20), _s(20))
         rb.setStyleSheet(f"QPushButton{{background:transparent;color:{T3};border:none;font-size:11px;}}"
                          f"QPushButton:hover{{color:{ACC};}}")
         rb.clicked.connect(self._rename); nr.addWidget(self.name_label); nr.addWidget(rb); nr.addStretch()
@@ -445,31 +473,31 @@ class StatusPanel(QWidget):
         self._lv.setStyleSheet(f"color:{TB};background:{BGB};border:none;border-radius:8px;padding:2px 8px;")
         lc=QHBoxLayout(); lc.addWidget(self._lv); lc.addStretch(); ic.addLayout(lc)
         hr.addLayout(ic)
-        S.addLayout(hr); S.addSpacing(4)
+        S.addLayout(hr); S.addSpacing(_s(4))
 
         # 心情色环图例
-        ring_row = QHBoxLayout(); ring_row.setSpacing(4)
-        ring_row.setContentsMargins(0, 0, 0, 0)
+        ring_row = QHBoxLayout(); ring_row.setSpacing(_s(4))
+        ring_row.setContentsMargins(_s(0), _s(0), _s(0), _s(0))
         for color, mood_name in [
             ("#7cc8a0", "开心"), ("#5ba8d4", "普通"), ("#7070c0", "难过"),
             ("#e0a060", "饥饿"), ("#c488d8", "困倦"),
         ]:
             dot = QLabel("●")
-            dot.setFont(QFont("Microsoft YaHei", 7))
+            dot.setFont(QFont("Microsoft YaHei", _fs(7)))
             dot.setStyleSheet(f"color:{color};background:transparent;border:none;padding:0;margin:0;")
             ring_row.addWidget(dot)
             mood_lbl = QLabel(mood_name)
-            mood_lbl.setFont(QFont("Microsoft YaHei", 8))
+            mood_lbl.setFont(QFont("Microsoft YaHei", _fs(8)))
             mood_lbl.setStyleSheet(f"color:{T3};background:transparent;border:none;padding:0;margin:0;")
             ring_row.addWidget(mood_lbl)
         ring_row.addStretch()
-        S.addLayout(ring_row); S.addSpacing(8)
+        S.addLayout(ring_row); S.addSpacing(_s(8))
 
         # 经验
         er=QHBoxLayout(); er.addWidget(_lbl("经验值",10,T3)); er.addStretch()
         self._ev=_lbl("0/100",10,T3); er.addWidget(self._ev)
-        S.addLayout(er); S.addSpacing(3)
-        self._eb=GradBar(*CX); S.addWidget(self._eb); S.addSpacing(4)
+        S.addLayout(er); S.addSpacing(_s(3))
+        self._eb=GradBar(*CX); S.addWidget(self._eb); S.addSpacing(_s(4))
 
         # 经验获取提示
         exp_tip = _lbl("💡 陪伴自动积累 · 📖学习+5 · ⭐经验星+20 · 📅签到奖励", 8, T3)
@@ -478,38 +506,38 @@ class StatusPanel(QWidget):
         exp_tip.setStyleSheet(
             f"color:{T3};background:{CARD};border:1px dashed {BD};"
             f"border-radius:8px;padding:4px 8px;margin:0;")
-        S.addWidget(exp_tip); S.addSpacing(10)
-        S.addWidget(_div()); S.addSpacing(8)
+        S.addWidget(exp_tip); S.addSpacing(_s(10))
+        S.addWidget(_div()); S.addSpacing(_s(8))
 
         # 签到
         sr=QHBoxLayout()
-        self._sb=QPushButton("📅 签到"); self._sb.setFixedHeight(34); self._sb.setFont(QFont("Microsoft YaHei",11))
+        self._sb=QPushButton("📅 签到"); self._sb.setFixedHeight(_s(34)); self._sb.setFont(QFont("Microsoft YaHei", _fs(11)))
         self._sb.setStyleSheet(f"QPushButton{{background:#e8f5e9;color:#388e3c;border:1.5px solid #a5d6a7;border-radius:10px;padding:0 16px;}}"
                                f"QPushButton:hover{{background:#c8e6c9;}}"
                                f"QPushButton:disabled{{background:{CARD2};color:{T3};border-color:{BD};}}")
         self._sb.clicked.connect(self._sign)
-        self._si=_lbl("",10,T3); sr.addWidget(self._sb); sr.addSpacing(8); sr.addWidget(self._si,1)
-        S.addLayout(sr); S.addSpacing(8); S.addWidget(_div()); S.addSpacing(8)
+        self._si=_lbl("",10,T3); sr.addWidget(self._sb); sr.addSpacing(_s(8)); sr.addWidget(self._si,1)
+        S.addLayout(sr); S.addSpacing(_s(8)); S.addWidget(_div()); S.addSpacing(_s(8))
 
         # 属性
-        S.addWidget(_lbl("属性",11,T3)); S.addSpacing(6)
+        S.addWidget(_lbl("属性",11,T3)); S.addSpacing(_s(6))
         self._bars={}; self._vl={}
         for label_text,colors,key in [("饱食度",CH,"hunger"),("心情值",CHP,"happy"),("体力值",CE,"energy"),("亲密度",CI,"intimacy")]:
-            row=QHBoxLayout(); row.setSpacing(8); row.setContentsMargins(0,2,0,2)
+            row=QHBoxLayout(); row.setSpacing(_s(8)); row.setContentsMargins(_s(0), _s(2), _s(0), _s(2))
             nl=_lbl(label_text,11,T2)
             nl.setFixedWidth(ATTR_W)
             nl.setAlignment(Qt.AlignLeft|Qt.AlignVCenter)
             bar=GradBar(*colors)
-            vl=_lbl("80",10,T2); vl.setMinimumWidth(32); vl.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
+            vl=_lbl("80",10,T2); vl.setMinimumWidth(_s(32)); vl.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
             self._bars[key]=bar; self._vl[key]=vl
             row.addWidget(nl); row.addWidget(bar,1); row.addWidget(vl)
-            S.addLayout(row); S.addSpacing(4)
+            S.addLayout(row); S.addSpacing(_s(4))
 
-        S.addSpacing(6); S.addWidget(_div()); S.addSpacing(8)
+        S.addSpacing(_s(6)); S.addWidget(_div()); S.addSpacing(_s(8))
 
         # 互动
-        S.addWidget(_lbl("互动",11,T3)); S.addSpacing(6)
-        grid=QGridLayout(); grid.setSpacing(6)
+        S.addWidget(_lbl("互动",11,T3)); S.addSpacing(_s(6))
+        grid=QGridLayout(); grid.setSpacing(_s(6))
         btns=[("🍔","喂食",self.feed_clicked),("✋","摸摸",self.pet_clicked),
               ("🏸","羽毛球",self.game_clicked),("🐱","变猫猫",self.cat_clicked),
               ("📖","学习",self.study_clicked),("💤","睡觉",self.sleep_clicked),
@@ -520,10 +548,10 @@ class StatusPanel(QWidget):
         S.addLayout(grid)
 
         # 底部信息
-        S.addSpacing(12); S.addWidget(_div()); S.addSpacing(6)
+        S.addSpacing(_s(12)); S.addWidget(_div()); S.addSpacing(_s(6))
         self.info_label=_lbl("",10,T3); self.info_label.setAlignment(Qt.AlignCenter); self.info_label.setWordWrap(True)
         S.addWidget(self.info_label)
-        S.addSpacing(4)
+        S.addSpacing(_s(4))
 
         scroll_area.setWidget(scroll_content)
         L.addWidget(scroll_area, 1)
@@ -539,7 +567,7 @@ class StatusPanel(QWidget):
             f"QScrollBar::handle:vertical{{background:{BD};border-radius:2px;}}"
             f"QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{{height:0px;}}")
         w=QWidget(); w.setStyleSheet("background:transparent;border:none;")
-        sl=QVBoxLayout(w); sl.setContentsMargins(0,2,4,0); sl.setSpacing(14)
+        sl=QVBoxLayout(w); sl.setContentsMargins(_s(0), _s(2), _s(4), _s(0)); sl.setSpacing(_s(14))
         sl.addWidget(_lbl("📋 每日任务",13,T1,True))
         if not self._gs:
             sl.addWidget(_lbl("系统未初始化",11,T3)); sl.addStretch()
@@ -560,9 +588,9 @@ class StatusPanel(QWidget):
                     c.setStyleSheet(f"background:#f6f9f7;border-radius:14px;border:1.5px solid #dce8df;")
                 else:
                     c.setStyleSheet(f"background:{CARD};border-radius:14px;border:1.5px solid {BD};")
-                cl=QVBoxLayout(c); cl.setContentsMargins(14,12,14,12); cl.setSpacing(3)
+                cl=QVBoxLayout(c); cl.setContentsMargins(_s(14), _s(12), _s(14), _s(12)); cl.setSpacing(_s(3))
                 ico = _TASK_ICON.get(t.get("stat", ""), "📌")
-                tr=QHBoxLayout(); tr.setSpacing(6)
+                tr=QHBoxLayout(); tr.setSpacing(_s(6))
                 if done:
                     tr.addWidget(_lbl(f"{ico} {t['name']}",11,"#9bb8a0",True)); tr.addStretch()
                     tr.addWidget(_lbl("✅",11,"#9bb8a0"))
@@ -570,7 +598,7 @@ class StatusPanel(QWidget):
                     tr.addWidget(_lbl(f"{ico} {t['name']}",11,T1,True)); tr.addStretch()
                     tr.addWidget(_lbl(f"{t['progress']}/{t['target']}",9,T3))
                 cl.addLayout(tr)
-                dr=QHBoxLayout(); dr.setSpacing(6)
+                dr=QHBoxLayout(); dr.setSpacing(_s(6))
                 if done:
                     dr.addWidget(_lbl(t['desc'],9,"#b0c4b4"))
                     dr.addStretch()
@@ -581,7 +609,7 @@ class StatusPanel(QWidget):
                     dr.addWidget(_lbl(f"💰+{t['reward']}",9,TB))
                 cl.addLayout(dr)
                 if not done:
-                    bar=GradBar("#f0b060","#f8d090"); bar.setFixedHeight(7)
+                    bar=GradBar("#f0b060","#f8d090"); bar.setFixedHeight(_s(7))
                     bar.set_value(int(t["progress"]/t["target"]*100) if t["target"]>0 else 0)
                     cl.addWidget(bar)
                 sl.addWidget(c)
@@ -597,7 +625,7 @@ class StatusPanel(QWidget):
         hdr.addWidget(_lbl("🎒 背包", 14, T1, True))
         hdr.addStretch()
         L.addLayout(hdr)
-        L.addSpacing(10)
+        L.addSpacing(_s(10))
 
         if not self._gs:
             L.addStretch()
@@ -612,7 +640,7 @@ class StatusPanel(QWidget):
             f"QScrollBar::handle:vertical{{background:{BD};border-radius:2px;}}"
             f"QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{{height:0px;}}")
         sw = QWidget(); sw.setStyleSheet("background:transparent;border:none;")
-        sl = QVBoxLayout(sw); sl.setContentsMargins(0, 2, 4, 0); sl.setSpacing(10)
+        sl = QVBoxLayout(sw); sl.setContentsMargins(_s(0), _s(2), _s(4), _s(0)); sl.setSpacing(_s(10))
 
         from src.game_systems import SHOP_MAP
         bp = self._gs.get_backpack()
@@ -622,14 +650,14 @@ class StatusPanel(QWidget):
             empty = QFrame()
             empty.setStyleSheet(
                 f"QFrame{{background:{CARD};border:2px dashed {BD};border-radius:18px;}}")
-            el = QVBoxLayout(empty); el.setContentsMargins(24, 40, 24, 40)
-            el.setAlignment(Qt.AlignCenter); el.setSpacing(8)
-            ico_l = QLabel("🛍️"); ico_l.setFont(QFont("Segoe UI Emoji", 30))
+            el = QVBoxLayout(empty); el.setContentsMargins(_s(24), _s(40), _s(24), _s(40))
+            el.setAlignment(Qt.AlignCenter); el.setSpacing(_s(8))
+            ico_l = QLabel("🛍️"); ico_l.setFont(QFont("Segoe UI Emoji", _fs(30)))
             ico_l.setAlignment(Qt.AlignCenter)
             ico_l.setStyleSheet("background:transparent;border:none;")
             el.addWidget(ico_l)
             el.addWidget(_lbl("背包空空如也～", 13, T2, True))
-            el.addSpacing(2)
+            el.addSpacing(_s(2))
             el.addWidget(_lbl("去商店买点好东西吧！", 10, T3))
             sl.addStretch(); sl.addWidget(empty); sl.addStretch()
         else:
@@ -650,26 +678,26 @@ class StatusPanel(QWidget):
                     f"QFrame:hover{{background:{BGB};"
                     f"border-left-color:{BD2};border-right-color:{BD2};border-bottom-color:{BD2};}}")
                 rl = QHBoxLayout(row)
-                rl.setContentsMargins(16, 10, 16, 14); rl.setSpacing(0)
+                rl.setContentsMargins(_s(16), _s(10), _s(16), _s(14)); rl.setSpacing(0)
 
                 # 表情圆圈
                 emoji_str = s['name'].split()[0]
-                ico = QLabel(emoji_str); ico.setFixedSize(44, 44)
+                ico = QLabel(emoji_str); ico.setFixedSize(_s(44), _s(44))
                 ico.setAlignment(Qt.AlignCenter)
-                ico.setFont(QFont("Segoe UI Emoji", 18))
+                ico.setFont(QFont("Segoe UI Emoji", _fs(18)))
                 ico.setStyleSheet(
                     f"QLabel{{background:{abg};border-radius:22px;border:none;}}")
-                rl.addWidget(ico); rl.addSpacing(12)
+                rl.addWidget(ico); rl.addSpacing(_s(12))
 
                 # 信息列
-                info = QVBoxLayout(); info.setSpacing(5)
-                info.setContentsMargins(0, 0, 0, 0)
+                info = QVBoxLayout(); info.setSpacing(_s(5))
+                info.setContentsMargins(_s(0), _s(0), _s(0), _s(0))
                 info.addWidget(_lbl(s['name'], 11, T1 if usable else T3, True))
                 info.addWidget(_lbl(s['desc'], 10, T2 if usable else T3))
-                rl.addLayout(info, 1); rl.addSpacing(10)
+                rl.addLayout(info, 1); rl.addSpacing(_s(10))
 
                 # ×N 使用按钮（使用道具专属强调色）
-                cb = QPushButton(f"×{cnt}"); cb.setFixedSize(48, 34)
+                cb = QPushButton(f"×{cnt}"); cb.setFixedSize(_s(48), _s(34))
                 if usable:
                     real_accent, real_abg = _ITEM_ACCENT.get(iid, _ITEM_ACCENT_DEFAULT)
                     cb.setStyleSheet(
@@ -697,7 +725,7 @@ class StatusPanel(QWidget):
         L = self._cl
         # ── 标题行 ──────────────────────────────────────────
         L.addWidget(_lbl("🏪 商店", 14, T1, True))
-        L.addSpacing(10)
+        L.addSpacing(_s(10))
 
         if not self._gs:
             L.addStretch()
@@ -712,7 +740,7 @@ class StatusPanel(QWidget):
             f"QScrollBar::handle:vertical{{background:{BD};border-radius:2px;}}"
             f"QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{{height:0px;}}")
         sw = QWidget(); sw.setStyleSheet("background:transparent;border:none;")
-        sl = QVBoxLayout(sw); sl.setContentsMargins(0, 2, 4, 0); sl.setSpacing(10)
+        sl = QVBoxLayout(sw); sl.setContentsMargins(_s(0), _s(2), _s(4), _s(0)); sl.setSpacing(_s(10))
 
         for s in self._gs.get_shop_items():
             iid = s["id"]
@@ -724,35 +752,35 @@ class StatusPanel(QWidget):
                 f"QFrame{{background:{CARD};border:1.5px solid {BD};border-radius:14px;}}"
                 f"QFrame:hover{{background:{BGB};border-color:{BD2};}}")
             rl = QHBoxLayout(row)
-            rl.setContentsMargins(0, 14, 16, 14); rl.setSpacing(0)
+            rl.setContentsMargins(_s(0), _s(14), _s(16), _s(14)); rl.setSpacing(0)
 
             # 左侧彩色竖条
-            stripe = QFrame(); stripe.setFixedWidth(5)
+            stripe = QFrame(); stripe.setFixedWidth(_s(5))
             stripe.setStyleSheet(
                 f"QFrame{{background:{accent};"
                 f"border-top-left-radius:12px;border-bottom-left-radius:12px;"
                 f"border-top-right-radius:0px;border-bottom-right-radius:0px;"
                 f"border:none;}}")
-            rl.addWidget(stripe); rl.addSpacing(12)
+            rl.addWidget(stripe); rl.addSpacing(_s(12))
 
             # 表情圆圈
             emoji_str = s['name'].split()[0]
-            ico = QLabel(emoji_str); ico.setFixedSize(44, 44)
+            ico = QLabel(emoji_str); ico.setFixedSize(_s(44), _s(44))
             ico.setAlignment(Qt.AlignCenter)
-            ico.setFont(QFont("Segoe UI Emoji", 18))
+            ico.setFont(QFont("Segoe UI Emoji", _fs(18)))
             ico.setStyleSheet(
                 f"QLabel{{background:{abg};border-radius:22px;border:none;}}")
-            rl.addWidget(ico); rl.addSpacing(12)
+            rl.addWidget(ico); rl.addSpacing(_s(12))
 
             # 信息列
-            info = QVBoxLayout(); info.setSpacing(5)
-            info.setContentsMargins(0, 0, 0, 0)
+            info = QVBoxLayout(); info.setSpacing(_s(5))
+            info.setContentsMargins(_s(0), _s(0), _s(0), _s(0))
             info.addWidget(_lbl(s['name'], 11, T1, True))
             info.addWidget(_lbl(s['desc'], 10, T2))
-            rl.addLayout(info, 1); rl.addSpacing(10)
+            rl.addLayout(info, 1); rl.addSpacing(_s(10))
 
             # 购买按钮
-            bb = QPushButton(f"💰 {s['price']}"); bb.setFixedSize(60, 34)
+            bb = QPushButton(f"💰 {s['price']}"); bb.setFixedSize(_s(60), _s(34))
             if can_buy:
                 bb.setStyleSheet(
                     f"QPushButton{{background:#fff8e1;color:#9a7000;"
@@ -776,7 +804,7 @@ class StatusPanel(QWidget):
     # ════════════════════  成就页  ════════════════════════════
     def _pg_ach(self):
         L=self._cl
-        L.addWidget(_lbl("🏅 成就",13,T1,True)); L.addSpacing(6)
+        L.addWidget(_lbl("🏅 成就",13,T1,True)); L.addSpacing(_s(6))
         if not self._gs or not self._ps:
             L.addWidget(_lbl("系统未初始化",11,T3)); L.addStretch(); return
         sa=QScrollArea(); sa.setWidgetResizable(True)
@@ -787,21 +815,21 @@ class StatusPanel(QWidget):
             f"QScrollBar::handle:vertical{{background:{BD};border-radius:2px;}}"
             f"QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{{height:0px;}}")
         sw=QWidget(); sw.setStyleSheet("background:transparent;border:none;")
-        sl=QVBoxLayout(sw); sl.setContentsMargins(0,2,4,0); sl.setSpacing(10)
+        sl=QVBoxLayout(sw); sl.setContentsMargins(_s(0), _s(2), _s(4), _s(0)); sl.setSpacing(_s(10))
         for a in self._gs.get_achievements_status(self._ps):
             c=QWidget()
             if a["unlocked"]:
                 c.setStyleSheet(f"background:#fffbf0;border-radius:14px;border:1.5px solid #f0d8a0;")
             else:
                 c.setStyleSheet(f"background:{CARD};border-radius:14px;border:1.5px solid {BD};")
-            cl=QHBoxLayout(c); cl.setContentsMargins(14,10,14,10); cl.setSpacing(10)
+            cl=QHBoxLayout(c); cl.setContentsMargins(_s(14), _s(10), _s(14), _s(10)); cl.setSpacing(_s(10))
             icon_lbl=QLabel("🏆" if a["unlocked"] else "🔒")
-            icon_lbl.setFont(QFont("Microsoft YaHei",15 if a["unlocked"] else 12))
-            icon_lbl.setFixedWidth(30)
+            icon_lbl.setFont(QFont("Microsoft YaHei", _fs(15) if a["unlocked"] else 12))
+            icon_lbl.setFixedWidth(_s(30))
             icon_lbl.setStyleSheet("background:transparent;border:none;")
             icon_lbl.setAlignment(Qt.AlignCenter)
             cl.addWidget(icon_lbl)
-            iv=QVBoxLayout(); iv.setSpacing(2)
+            iv=QVBoxLayout(); iv.setSpacing(_s(2))
             name_txt = a["name"] + " ✓" if a["unlocked"] else a["name"]
             nl=_lbl(name_txt,11 if a["unlocked"] else 10,T1 if a["unlocked"] else T3,True)
             if a["unlocked"]:
@@ -833,7 +861,7 @@ class StatusPanel(QWidget):
         self._chat_content=QWidget()
         self._chat_content.setStyleSheet(f"background:{CARD};border:none;")
         self._chat_layout=QVBoxLayout(self._chat_content)
-        self._chat_layout.setContentsMargins(8,8,8,8); self._chat_layout.setSpacing(6)
+        self._chat_layout.setContentsMargins(_s(8), _s(8), _s(8), _s(8)); self._chat_layout.setSpacing(_s(6))
         self._chat_layout.addStretch()
         self._chat_scroll.setWidget(self._chat_content)
         L.addWidget(self._chat_scroll,1)
@@ -848,16 +876,16 @@ class StatusPanel(QWidget):
             hint.setAlignment(Qt.AlignCenter); hint.setWordWrap(True)
             hint.setCursor(Qt.PointingHandCursor)
             hint.mousePressEvent = lambda _: self._go("settings")
-            L.addSpacing(4); L.addWidget(hint)
+            L.addSpacing(_s(4)); L.addWidget(hint)
 
-        L.addSpacing(6)
-        ir=QHBoxLayout(); ir.setSpacing(6)
+        L.addSpacing(_s(6))
+        ir=QHBoxLayout(); ir.setSpacing(_s(6))
         self._chat_input=_MultiLineInput("和我说说话吧~")
         self._chat_input.submitted.connect(self._send_chat)
         ir.addWidget(self._chat_input,1)
 
-        send_btn=QPushButton("发送"); send_btn.setFixedSize(56,36)
-        send_btn.setFont(QFont("Microsoft YaHei",11))
+        send_btn=QPushButton("发送"); send_btn.setFixedSize(_s(56), _s(36))
+        send_btn.setFont(QFont("Microsoft YaHei", _fs(11)))
         send_btn.setStyleSheet(
             f"QPushButton{{background:#e8d0c0;color:{T1};border:none;border-radius:12px;font-weight:bold;}}"
             f"QPushButton:hover{{background:#dcc0b0;}}"
@@ -870,7 +898,7 @@ class StatusPanel(QWidget):
             mi=self._cs.get_memory_info()
             mem_text=f"记忆：{mi['facts_count']} 条事实 · {mi['recent_count']//2} 轮对话"
             ml=_lbl(mem_text,9,T3); ml.setAlignment(Qt.AlignCenter)
-            L.addSpacing(2); L.addWidget(ml)
+            L.addSpacing(_s(2)); L.addWidget(ml)
 
     def _load_chat_history(self, scroll_to_bottom: bool = True):
         if not self._cs:
@@ -927,7 +955,7 @@ class StatusPanel(QWidget):
         bubble.setOpenExternalLinks(True)
         bubble.setWordWrap(True)
         bubble.setMaximumWidth(BUBBLE_W)
-        bubble.setFont(QFont("Microsoft YaHei", 10))
+        bubble.setFont(QFont("Microsoft YaHei", _fs(10)))
         bubble.setText(html_text)
         bubble.setTextInteractionFlags(
             Qt.TextBrowserInteraction | Qt.TextSelectableByMouse
@@ -1131,25 +1159,25 @@ class StatusPanel(QWidget):
         scroll_content = QWidget()
         scroll_content.setStyleSheet("background:transparent;border:none;")
         S = QVBoxLayout(scroll_content)
-        S.setContentsMargins(0, 0, 0, 0)
+        S.setContentsMargins(_s(0), _s(0), _s(0), _s(0))
         S.setSpacing(0)
 
         is_first = self._cs and self._cs.is_first_launch
         title = "首次使用 — 配置 API" if is_first else "API 设置"
-        S.addWidget(_lbl(title,13,T1,True)); S.addSpacing(16)
+        S.addWidget(_lbl(title,13,T1,True)); S.addSpacing(_s(16))
 
         if is_first:
             hint = _lbl("欢迎使用桌宠！请先配置你的 AI 接口信息：",10,"#c4784a")
-            hint.setWordWrap(True); S.addWidget(hint); S.addSpacing(6)
+            hint.setWordWrap(True); S.addWidget(hint); S.addSpacing(_s(6))
 
         config = self._cs.config if self._cs else {"api_url":"","api_key":"","model":""}
 
         def _input(label, value, placeholder="", is_password=False):
-            S.addWidget(_lbl(label,11,T2)); S.addSpacing(2)
-            row=QHBoxLayout(); row.setSpacing(4)
+            S.addWidget(_lbl(label,11,T2)); S.addSpacing(_s(2))
+            row=QHBoxLayout(); row.setSpacing(_s(4))
             inp=QLineEdit(value)
             inp.setPlaceholderText(placeholder)
-            inp.setFixedHeight(36); inp.setFont(QFont("Microsoft YaHei",10))
+            inp.setFixedHeight(_s(36)); inp.setFont(QFont("Microsoft YaHei", _fs(10)))
             if is_password:
                 inp.setEchoMode(QLineEdit.Password)
             inp.setStyleSheet(
@@ -1157,7 +1185,7 @@ class StatusPanel(QWidget):
                 f"padding:4px 12px;color:{T1};}}"
                 f"QLineEdit:focus{{border-color:{ACC};}}")
             row.addWidget(inp)
-            clr=QPushButton("✕"); clr.setFixedSize(28,36)
+            clr=QPushButton("✕"); clr.setFixedSize(_s(28), _s(36))
             clr.setToolTip("清空此项")
             clr.setStyleSheet(
                 f"QPushButton{{background:transparent;color:{T3};border:none;"
@@ -1165,7 +1193,7 @@ class StatusPanel(QWidget):
                 f"QPushButton:hover{{color:#c06060;background:#fde8e8;}}")
             clr.clicked.connect(inp.clear)
             row.addWidget(clr)
-            S.addLayout(row); S.addSpacing(14)
+            S.addLayout(row); S.addSpacing(_s(14))
             return inp
 
         url_ph = "首次使用，请输入你的 API 地址" if is_first else "https://api.openai.com/v1 或中转站地址"
@@ -1174,18 +1202,18 @@ class StatusPanel(QWidget):
         self._cfg_key=_input("API Key", config.get("api_key",""), key_ph, is_password=True)
         self._cfg_model=_input("模型名称", config.get("model",""),
                                "gpt-3.5-turbo / deepseek-chat / claude-3.5-sonnet")
-        S.addSpacing(22)
-        br=QHBoxLayout(); br.setSpacing(10)
-        save_btn=QPushButton("保存设置"); save_btn.setFixedHeight(38)
-        save_btn.setFont(QFont("Microsoft YaHei",11,QFont.Bold))
+        S.addSpacing(_s(22))
+        br=QHBoxLayout(); br.setSpacing(_s(10))
+        save_btn=QPushButton("保存设置"); save_btn.setFixedHeight(_s(38))
+        save_btn.setFont(QFont("Microsoft YaHei", _fs(11),QFont.Bold))
         save_btn.setStyleSheet(
             f"QPushButton{{background:#e8d0c0;color:{T1};border:none;border-radius:12px;padding:0 20px;}}"
             f"QPushButton:hover{{background:#dcc0b0;}}")
         save_btn.clicked.connect(self._save_settings)
         br.addWidget(save_btn)
 
-        test_btn=QPushButton("测试连接"); test_btn.setFixedHeight(38)
-        test_btn.setFont(QFont("Microsoft YaHei",11))
+        test_btn=QPushButton("测试连接"); test_btn.setFixedHeight(_s(38))
+        test_btn.setFont(QFont("Microsoft YaHei", _fs(11)))
         test_btn.setStyleSheet(
             f"QPushButton{{background:{CARD};color:{T2};border:1.5px solid {BD};border-radius:12px;padding:0 20px;}}"
             f"QPushButton:hover{{background:{BGB};}}")
@@ -1193,17 +1221,17 @@ class StatusPanel(QWidget):
         br.addWidget(test_btn)
         S.addLayout(br)
 
-        S.addSpacing(16)
+        S.addSpacing(_s(16))
         status = "已配置" if (self._cs and self._cs.enabled) else "未配置"
         self._cfg_status=_lbl(f"当前状态：{status}",10,T2)
         self._cfg_status.setWordWrap(True)
         S.addWidget(self._cfg_status)
 
-        S.addSpacing(26); S.addWidget(_div()); S.addSpacing(22)
+        S.addSpacing(_s(26)); S.addWidget(_div()); S.addSpacing(_s(22))
 
         # 记忆管理入口按钮
-        mem_btn=QPushButton("📝 记忆管理"); mem_btn.setFixedHeight(42)
-        mem_btn.setFont(QFont("Microsoft YaHei",12,QFont.Bold))
+        mem_btn=QPushButton("📝 记忆管理"); mem_btn.setFixedHeight(_s(42))
+        mem_btn.setFont(QFont("Microsoft YaHei", _fs(12),QFont.Bold))
         mem_btn.setStyleSheet(
             f"QPushButton{{background:{CARD};color:{T1};border:1.5px solid {BD};border-radius:12px;padding:0 20px;}}"
             f"QPushButton:hover{{background:{BGB};border-color:{BD2};}}"
@@ -1212,20 +1240,20 @@ class StatusPanel(QWidget):
         S.addWidget(mem_btn)
         if self._cs:
             mi=self._cs.get_memory_info()
-            S.addSpacing(12)
+            S.addSpacing(_s(12))
             S.addWidget(_lbl(f"{mi['facts_count']} 条记忆  ·  {mi['recent_count']//2} 轮对话",9,T3))
 
         # ── 赞赏 + 关于（左右两栏）──
-        S.addSpacing(26); S.addWidget(_div()); S.addSpacing(18)
-        footer = QHBoxLayout(); footer.setContentsMargins(10, 0, 10, 0)
+        S.addSpacing(_s(26)); S.addWidget(_div()); S.addSpacing(_s(18))
+        footer = QHBoxLayout(); footer.setContentsMargins(_s(10), _s(0), _s(10), _s(0))
 
         # 左栏：赞赏
-        left_col = QVBoxLayout(); left_col.setSpacing(10)
+        left_col = QVBoxLayout(); left_col.setSpacing(_s(10))
         left_col.setAlignment(Qt.AlignCenter)
         tip_title = _lbl("☕ 请作者喝杯咖啡", 9, T2)
         tip_title.setAlignment(Qt.AlignCenter)
         left_col.addWidget(tip_title)
-        left_col.addSpacing(4)
+        left_col.addSpacing(_s(4))
         _qr_path = _asset("shoukuanma.jpg")
         if os.path.exists(_qr_path):
             qr_img = QImage(_qr_path)
@@ -1248,20 +1276,20 @@ class StatusPanel(QWidget):
         # 竖分割线
         vdiv = QFrame(); vdiv.setFrameShape(QFrame.VLine)
         vdiv.setStyleSheet(f"color:{BD};")
-        vdiv.setFixedWidth(1)
-        footer.addSpacing(12); footer.addWidget(vdiv); footer.addSpacing(12)
+        vdiv.setFixedWidth(_s(1))
+        footer.addSpacing(_s(12)); footer.addWidget(vdiv); footer.addSpacing(_s(12))
 
         # 右栏：关于（顶部对齐二维码 y 轴）
-        right_col = QVBoxLayout(); right_col.setSpacing(16)
+        right_col = QVBoxLayout(); right_col.setSpacing(_s(16))
         right_col.setAlignment(Qt.AlignTop)
-        right_col.setContentsMargins(0, 48, 0, 0)
+        right_col.setContentsMargins(_s(0), _s(48), _s(0), _s(0))
         about_ver = _lbl("版本号：v1.0.0", 9, T3)
         about_ver.setAlignment(Qt.AlignLeft)
         right_col.addWidget(about_ver)
         about_author = _lbl("by  WWW.没有COM", 9, T2)
         about_author.setAlignment(Qt.AlignLeft)
         right_col.addWidget(about_author)
-        wx_row = QHBoxLayout(); wx_row.setSpacing(4)
+        wx_row = QHBoxLayout(); wx_row.setSpacing(_s(4))
         wx_icon = QLabel()
         wx_pix = QPixmap(18, 16); wx_pix.fill(QColor(0, 0, 0, 0))
         _p = QPainter(wx_pix)
@@ -1281,7 +1309,7 @@ class StatusPanel(QWidget):
         _p.setPen(Qt.NoPen); _p.setBrush(QBrush(QColor("#07c160")))
         _p.drawEllipse(10, 3, 2, 2); _p.drawEllipse(13, 3, 2, 2)
         _p.end()
-        wx_icon.setPixmap(wx_pix); wx_icon.setFixedSize(18, 16)
+        wx_icon.setPixmap(wx_pix); wx_icon.setFixedSize(_s(18), _s(16))
         wx_icon.setStyleSheet("background:transparent;border:none;")
         wx_row.addWidget(wx_icon)
         wx_id = _lbl("xy12981118", 9, T3)
@@ -1373,7 +1401,7 @@ class StatusPanel(QWidget):
         bubble.setOpenExternalLinks(False)
         bubble.setWordWrap(True)
         bubble.setMaximumWidth(BUBBLE_W)
-        bubble.setFont(QFont("Microsoft YaHei", 10))
+        bubble.setFont(QFont("Microsoft YaHei", _fs(10)))
         bubble.setText(html_text)
         bubble.setContextMenuPolicy(Qt.CustomContextMenu)
         bubble.customContextMenuRequested.connect(

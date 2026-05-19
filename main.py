@@ -53,10 +53,11 @@ from src.game_systems import GameSystems
 from src.chat_service import ChatService
 from src.snap_system import SnapSystem, TASKBAR_MARGIN
 
-PET_SIZE = 210
+PET_SIZE = 210   # 基准值，main() 中根据屏幕逻辑高度重新计算
 PET_WINDOW_MARGIN = 20   # 窗口四周透明 padding，_sync_window_pos 中用到
 FPS = 60
 SAVE_EVERY = 30
+_DESIGN_H = 1440  # 设计基准：2560×1440 @ 100% DPI 下的逻辑屏幕高度
 
 _DIALOGUES: dict[str, list[str]] = {
     "morning":  ["早上好！今天也要加油哦~", "嗯...还没睡醒呢...", "新的一天，元气满满！", "早安！要吃早饭了吗？"],
@@ -431,7 +432,7 @@ class PetWindow(QWidget):
 
         # ── 吸附系统 ────────────────────────────────────────────────
         dpr = QApplication.primaryScreen().devicePixelRatio()
-        self._snap_system = SnapSystem(dpr=dpr)
+        self._snap_system = SnapSystem(dpr=dpr, pet_size=PET_SIZE)
         self._is_snapped       = False
         self._snap_target_type = ""
         self._snap_target_hwnd: int | None = None
@@ -835,7 +836,7 @@ class PetWindow(QWidget):
             return
         # 更新吸附位置：截图窗口完全在上方，普通窗口一半一半
         if self._snap_target_type == "preview_top":
-            self._pet_y = float(top - 148)
+            self._pet_y = float(top - int(PET_SIZE * 0.7))
         else:
             self._pet_y = float(top - PET_SIZE / 2)
         self._pet_x = max(float(left), min(float(right) - PET_SIZE, self._pet_x))
@@ -1167,7 +1168,7 @@ class PetWindow(QWidget):
                 # NOTE: 当吸附目标窗口上边缘贴近屏幕顶部时（如最大化窗口），
                 # 桌宠实际是「趴在屏幕上方」，需确保完整显示。
                 if snap.snap_y < float(PET_WINDOW_MARGIN):
-                    win_top = (snap.snap_y + 148.0) if snap.edge_type == "preview_top" \
+                    win_top = (snap.snap_y + PET_SIZE * 0.7) if snap.edge_type == "preview_top" \
                               else (snap.snap_y + PET_SIZE / 2.0)
                     if win_top < PET_SIZE * 0.4:
                         self._pet_y = float(PET_WINDOW_MARGIN)
@@ -1644,8 +1645,19 @@ class PetWindow(QWidget):
 
 
 def main():
+    global PET_SIZE
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
+    # ── 根据屏幕逻辑高度动态调整桌宠尺寸 ──
+    # AA_EnableHighDpiScaling 使逻辑分辨率随 DPI 缩小，
+    # 等比缩放 PET_SIZE 保持一致的屏幕占比
+    _scr = QApplication.primaryScreen()
+    if _scr:
+        _logical_h = _scr.geometry().height()  # 完整屏幕逻辑高度（不受任务栏影响）
+        # 等比缩放：保持与基准屏幕一致的物理占比（14.6%）
+        # min(1.0, ...) 只缩小不放大，大屏维持原尺寸
+        _scale = min(1.0, _logical_h / _DESIGN_H)
+        PET_SIZE = max(120, int(210 * _scale))
     window = PetWindow()
     sys.exit(app.exec_())
 

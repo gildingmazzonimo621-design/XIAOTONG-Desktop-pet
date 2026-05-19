@@ -14,8 +14,6 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 # 请求超时（秒）
 _TIMEOUT = 15
 

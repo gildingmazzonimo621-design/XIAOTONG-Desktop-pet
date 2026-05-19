@@ -27,32 +27,44 @@ CLR_DOC    = "#7ab8d4"   # 青
 
 def _lbl(t="", sz=12, c=T1, bold=False):
     lb = QLabel(t)
-    f = QFont("Microsoft YaHei", sz); f.setBold(bold); lb.setFont(f)
+    f = QFont("Microsoft YaHei", _fs(sz)); f.setBold(bold); lb.setFont(f)
     lb.setStyleSheet(f"color:{c};background:transparent;border:none;padding:0;margin:0;")
     return lb
 
 
 def _btn(text, h=34, primary=False, danger=False):
     b = QPushButton(text)
-    b.setFixedHeight(h)
-    b.setFont(QFont("Microsoft YaHei", 10))
+    b.setFixedHeight(_s(h))
+    b.setFont(QFont("Microsoft YaHei", _fs(10)))
     b.setCursor(Qt.PointingHandCursor)
     if danger:
         b.setStyleSheet(
-            "QPushButton{background:#fbe9e7;color:#c62828;border:1px solid #ef9a9a;"
-            "border-radius:10px;padding:0 14px;}"
-            "QPushButton:hover{background:#ffcdd2;}")
+            f"QPushButton{{background:#fbe9e7;color:#c62828;border:1px solid #ef9a9a;"
+            f"border-radius:{_s(10)}px;padding:0 {_s(14)}px;}}"
+            f"QPushButton:hover{{background:#ffcdd2;}}")
     elif primary:
         b.setStyleSheet(
-            f"QPushButton{{background:#e8d0c0;color:{T1};border:none;border-radius:10px;"
-            f"padding:0 14px;font-weight:bold;}}"
+            f"QPushButton{{background:#e8d0c0;color:{T1};border:none;border-radius:{_s(10)}px;"
+            f"padding:0 {_s(14)}px;font-weight:bold;}}"
             f"QPushButton:hover{{background:#dcc0b0;}}")
     else:
         b.setStyleSheet(
             f"QPushButton{{background:{CARD};color:{T2};border:1.5px solid {BD};"
-            f"border-radius:10px;padding:0 14px;}}"
+            f"border-radius:{_s(10)}px;padding:0 {_s(14)}px;}}"
             f"QPushButton:hover{{background:{BGB};border-color:{BD2};color:{T1};}}")
     return b
+
+
+# ── DPI 等比缩放工具 ─────────────────────────────────────────
+_ui_scale = 1.0  # KnowledgeHub.__init__ 中设置
+
+def _s(px):
+    """缩放像素值 — 面板内部布局尺寸（边距、固定宽高、间距）"""
+    return max(1, round(px * _ui_scale))
+
+def _fs(pt):
+    """缩放字号 — 保证最小可读性"""
+    return max(7, round(pt * _ui_scale))
 
 
 def _time_ago(ts):
@@ -121,29 +133,29 @@ class _MultiLineInput(QTextEdit):
 
     def __init__(self, placeholder="", max_h=140, parent=None):
         super().__init__(parent)
-        self._max_h = max_h
+        self._max_h = _s(max_h)
         self.setPlaceholderText(placeholder)
-        self.setFont(QFont("Microsoft YaHei", 10))
+        self.setFont(QFont("Microsoft YaHei", _fs(10)))
         self.setAcceptRichText(False)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setStyleSheet(
             f"QTextEdit{{background:{CARD};border:1.5px solid {BD};"
-            f"border-radius:12px;padding:4px 12px;color:{T1};}}"
+            f"border-radius:{_s(12)}px;padding:{_s(4)}px {_s(12)}px;color:{T1};}}"
             f"QTextEdit:focus{{border-color:{ACC};}}"
-            f"QScrollBar:vertical{{width:4px;background:{CARD2};}}"
-            f"QScrollBar::handle:vertical{{background:{BD};border-radius:2px;}}"
+            f"QScrollBar:vertical{{width:{_s(4)}px;background:{CARD2};}}"
+            f"QScrollBar::handle:vertical{{background:{BD};border-radius:{_s(2)}px;}}"
             f"QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{{height:0px;}}")
-        self.document().setDocumentMargin(2)       # 默认 4，压缩省空间
+        self.document().setDocumentMargin(_s(2))       # 默认 4，压缩省空间
         fm = self.fontMetrics()
-        self._single_h = max(fm.height() + 22, 38)  # 留足 padding+border+docMargin
+        self._single_h = max(fm.height() + _s(22), _s(38))  # 留足 padding+border+docMargin
         self.setFixedHeight(self._single_h)
         self.textChanged.connect(self._auto_resize)
 
     # ── 核心：根据文档实际高度自动调整控件高度 ──
     def _auto_resize(self):
         doc_h = int(self.document().size().height())
-        target = doc_h + 12                       # 上下 padding 补偿
+        target = doc_h + _s(12)                       # 上下 padding 补偿
         target = max(self._single_h, min(self._max_h, target))
         if self.height() != target:
             self.setFixedHeight(target)
@@ -183,115 +195,115 @@ class CrawlOverlay(QWidget):
         self._root = QWidget(self)
         self._root.setObjectName("CO")
         self._root.setStyleSheet(
-            f"QWidget#CO{{background:{BG};border-radius:18px;"
+            f"QWidget#CO{{background:{BG};border-radius:{_s(18)}px;"
             f"border:1.5px solid {BD};}}")
         ml = QVBoxLayout(self._root)
-        ml.setContentsMargins(18, 16, 18, 14)
+        ml.setContentsMargins(_s(18), _s(16), _s(18), _s(14))
         ml.setSpacing(0)
 
         # ── 标题
         h = QHBoxLayout()
         h.addWidget(_lbl("🌐 网页信息整理", 13, T1, True))
         h.addStretch()
-        cb = QPushButton("✕"); cb.setFixedSize(26, 26)
+        cb = QPushButton("✕"); cb.setFixedSize(_s(26), _s(26))
         cb.setStyleSheet(
             f"QPushButton{{background:transparent;color:{T3};border:none;"
-            f"font-size:13px;border-radius:13px;}}"
+            f"font-size:{_fs(13)}px;border-radius:{_s(13)}px;}}"
             f"QPushButton:hover{{background:{CARD2};color:{T2};}}")
         cb.clicked.connect(self._close)
         h.addWidget(cb)
         ml.addLayout(h)
-        ml.addSpacing(10)
+        ml.addSpacing(_s(10))
 
         # ── URL 输入（多行，Enter 触发抓取）
-        ur = QHBoxLayout(); ur.setSpacing(6); ur.setAlignment(Qt.AlignTop)
+        ur = QHBoxLayout(); ur.setSpacing(_s(6)); ur.setAlignment(Qt.AlignTop)
         self._url_input = _MultiLineInput("粘贴网址，如 https://…")
         self._url_input.submitted.connect(self._do_crawl)
         ur.addWidget(self._url_input, 1)
 
-        btn_col = QVBoxLayout(); btn_col.setSpacing(4); btn_col.setAlignment(Qt.AlignTop)
+        btn_col = QVBoxLayout(); btn_col.setSpacing(_s(4)); btn_col.setAlignment(Qt.AlignTop)
 
         self._clear_url_btn = QPushButton("✕")
-        self._clear_url_btn.setFixedSize(28, 28)
+        self._clear_url_btn.setFixedSize(_s(28), _s(28))
         self._clear_url_btn.setStyleSheet(
             f"QPushButton{{background:transparent;color:{T3};border:none;"
-            f"font-size:12px;border-radius:14px;}}"
+            f"font-size:{_fs(12)}px;border-radius:{_s(14)}px;}}"
             f"QPushButton:hover{{background:{CARD2};color:{T2};}}")
         self._clear_url_btn.setToolTip("清空网址及搜索记录（已保存内容不受影响）")
         self._clear_url_btn.clicked.connect(self._clear_url)
         btn_col.addWidget(self._clear_url_btn)
 
         self._fetch_btn = _btn("抓取", 34, primary=True)
-        self._fetch_btn.setFixedWidth(64)
+        self._fetch_btn.setFixedWidth(_s(64))
         self._fetch_btn.clicked.connect(self._do_crawl)
         btn_col.addWidget(self._fetch_btn)
 
         self._cancel_btn = _btn("取消", 34, danger=True)
-        self._cancel_btn.setFixedWidth(64)
+        self._cancel_btn.setFixedWidth(_s(64))
         self._cancel_btn.clicked.connect(self._cancel_crawl)
         self._cancel_btn.hide()
         btn_col.addWidget(self._cancel_btn)
 
         ur.addLayout(btn_col)
         ml.addLayout(ur)
-        ml.addSpacing(6)
+        ml.addSpacing(_s(6))
 
         # ── 状态行
         self._status_lbl = _lbl("输入网址后点击「抓取」或按 Enter", 10, T3)
         ml.addWidget(self._status_lbl)
-        ml.addSpacing(6)
+        ml.addSpacing(_s(6))
 
         # ── 文件夹名称（可自定义，抓取后自动填入页面标题）
-        fn_row = QHBoxLayout(); fn_row.setSpacing(6)
+        fn_row = QHBoxLayout(); fn_row.setSpacing(_s(6))
         fn_row.addWidget(_lbl("📂", 13))
         fn_row.addWidget(_lbl("文件夹名称：", 10, T2))
         self._folder_input = QLineEdit()
         self._folder_input.setPlaceholderText("抓取后自动填入标题，可随时修改…")
-        self._folder_input.setFixedHeight(32)
-        self._folder_input.setFont(QFont("Microsoft YaHei", 10))
+        self._folder_input.setFixedHeight(_s(32))
+        self._folder_input.setFont(QFont("Microsoft YaHei", _fs(10)))
         self._folder_input.setStyleSheet(
-            f"QLineEdit{{background:{CARD};border:1.5px solid {BD};border-radius:10px;"
-            f"padding:0 10px;color:{T1};}}"
+            f"QLineEdit{{background:{CARD};border:1.5px solid {BD};border-radius:{_s(10)}px;"
+            f"padding:0 {_s(10)}px;color:{T1};}}"
             f"QLineEdit:focus{{border-color:{ACC};}}")
         fn_row.addWidget(self._folder_input, 1)
         ml.addLayout(fn_row)
-        ml.addSpacing(8)
+        ml.addSpacing(_s(8))
 
         # ── 抓取结果滚动区
         self._result_widget = QWidget()
         self._result_widget.setStyleSheet("background:transparent;border:none;")
         self._result_layout = QVBoxLayout(self._result_widget)
-        self._result_layout.setContentsMargins(4, 4, 4, 4)
-        self._result_layout.setSpacing(4)
+        self._result_layout.setContentsMargins(_s(4), _s(4), _s(4), _s(4))
+        self._result_layout.setSpacing(_s(4))
         sa = QScrollArea()
         sa.setWidgetResizable(True)
         sa.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         sa.setStyleSheet(
-            f"QScrollArea{{border:1px solid {BD};border-radius:12px;background:{CARD};}}"
-            f"QScrollBar:vertical{{width:5px;background:{CARD2};}}"
-            f"QScrollBar::handle:vertical{{background:{BD};border-radius:2px;}}"
+            f"QScrollArea{{border:1px solid {BD};border-radius:{_s(12)}px;background:{CARD};}}"
+            f"QScrollBar:vertical{{width:{_s(5)}px;background:{CARD2};}}"
+            f"QScrollBar::handle:vertical{{background:{BD};border-radius:{_s(2)}px;}}"
             f"QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{{height:0px;}}")
         sa.setWidget(self._result_widget)
         ml.addWidget(sa, 1)
-        ml.addSpacing(6)
+        ml.addSpacing(_s(6))
 
         # ── 手动添加内容行（多行输入）
-        ca_row = QHBoxLayout(); ca_row.setSpacing(6); ca_row.setAlignment(Qt.AlignTop)
+        ca_row = QHBoxLayout(); ca_row.setSpacing(_s(6)); ca_row.setAlignment(Qt.AlignTop)
         self._custom_input = _MultiLineInput("手动添加内容到此文件夹…")
         self._custom_input.submitted.connect(self._add_custom_item)
         ca_row.addWidget(self._custom_input, 1)
         add_custom_btn = QPushButton("＋ 添加")
-        add_custom_btn.setFixedSize(72, 34)
-        add_custom_btn.setFont(QFont("Microsoft YaHei", 10))
+        add_custom_btn.setFixedSize(_s(72), _s(34))
+        add_custom_btn.setFont(QFont("Microsoft YaHei", _fs(10)))
         add_custom_btn.setCursor(Qt.PointingHandCursor)
         add_custom_btn.setStyleSheet(
             f"QPushButton{{background:{CARD};color:{T2};border:1.5px solid {BD};"
-            f"border-radius:10px;}}"
+            f"border-radius:{_s(10)}px;}}"
             f"QPushButton:hover{{background:{BGB};color:{T1};}}")
         add_custom_btn.clicked.connect(self._add_custom_item)
         ca_row.addWidget(add_custom_btn)
         ml.addLayout(ca_row)
-        ml.addSpacing(6)
+        ml.addSpacing(_s(6))
 
         # ── 底部操作
         br = QHBoxLayout()
@@ -311,7 +323,7 @@ class CrawlOverlay(QWidget):
         super().resizeEvent(e)
         # 浮层居中
         pw, ph = self.width(), self.height()
-        rw, rh = min(pw - 20, 510), min(ph - 20, 650)
+        rw, rh = min(pw - _s(20), _s(510)), min(ph - _s(20), _s(650))
         self._root.setGeometry((pw - rw) // 2, (ph - rh) // 2, rw, rh)
 
     def paintEvent(self, e):
@@ -425,15 +437,15 @@ class CrawlOverlay(QWidget):
 
     def _make_result_row(self, idx, text):
         w = QWidget()
-        w.setStyleSheet(f"background:{CARD};border-radius:8px;border:1px solid {BD};")
+        w.setStyleSheet(f"background:{CARD};border-radius:{_s(8)}px;border:1px solid {BD};")
         lay = QHBoxLayout(w)
-        lay.setContentsMargins(8, 6, 8, 6)
-        lay.setSpacing(8)
+        lay.setContentsMargins(_s(8), _s(6), _s(8), _s(6))
+        lay.setSpacing(_s(8))
 
         # 勾选框
         cb = QPushButton("☐")
-        cb.setFixedSize(22, 22)
-        cb.setFont(QFont("Microsoft YaHei", 12))
+        cb.setFixedSize(_s(22), _s(22))
+        cb.setFont(QFont("Microsoft YaHei", _fs(12)))
         cb.setStyleSheet(
             f"QPushButton{{background:transparent;color:{T3};border:none;}}"
             f"QPushButton:hover{{color:{T1};}}")
@@ -442,18 +454,18 @@ class CrawlOverlay(QWidget):
 
         # 内容
         lbl = QLabel(text)
-        lbl.setFont(QFont("Microsoft YaHei", 10))
+        lbl.setFont(QFont("Microsoft YaHei", _fs(10)))
         lbl.setWordWrap(True)
         lbl.setStyleSheet(f"color:{T1};background:transparent;border:none;")
         lay.addWidget(lbl, 1)
 
         # 从列表移除按钮
         del_btn = QPushButton("✕")
-        del_btn.setFixedSize(20, 20)
-        del_btn.setFont(QFont("Arial", 10))
+        del_btn.setFixedSize(_s(20), _s(20))
+        del_btn.setFont(QFont("Arial", _fs(10)))
         del_btn.setToolTip("从列表移除（已保存记忆不受影响）")
         del_btn.setStyleSheet(
-            f"QPushButton{{background:transparent;color:{BD};border:none;border-radius:10px;}}"
+            f"QPushButton{{background:transparent;color:{BD};border:none;border-radius:{_s(10)}px;}}"
             f"QPushButton:hover{{background:#fde8e8;color:#c06060;}}")
         del_btn.clicked.connect(lambda checked=False, i=idx, ww=w: self._delete_result_row(i, ww))
         lay.addWidget(del_btn, 0, Qt.AlignTop)
@@ -522,7 +534,8 @@ class CrawlOverlay(QWidget):
 #  知识中心主窗口
 # ══════════════════════════════════════════════════════════════
 class KnowledgeHub(QWidget):
-    KW, KH = 720, 680
+    _BASE_KW, _BASE_KH = 720, 680
+    _DESIGN_H = 1440
 
     def __init__(self, chat_service, parent=None, parent_panel=None):
         super().__init__(parent)
@@ -532,11 +545,21 @@ class KnowledgeHub(QWidget):
         self._search_text = ""
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.Tool | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
+        # ── 根据屏幕逻辑高度等比缩放 ──
+        scr = QApplication.primaryScreen()
+        avail_h = scr.availableGeometry().height() if scr else 1080
+        logical_h = scr.geometry().height() if scr else 1440
+        _scale = min(1.0, logical_h / self._DESIGN_H)
+        global _ui_scale
+        _ui_scale = _scale
+        self.KW = max(480, int(self._BASE_KW * _scale))
+        self.KH = max(440, int(self._BASE_KH * _scale))
+        self.KH = min(self.KH, avail_h - 60)
         self.setFixedSize(self.KW, self.KH)
         self._dp = QPoint(); self._dg = False
         # 居中
-        scr = QApplication.primaryScreen().geometry()
-        self.move((scr.width() - self.KW) // 2, (scr.height() - self.KH) // 2)
+        scr_geo = scr.geometry() if scr else QApplication.primaryScreen().geometry()
+        self.move((scr_geo.width() - self.KW) // 2, (scr_geo.height() - self.KH) // 2)
         self._build()
 
     def mousePressEvent(self, e):
@@ -561,10 +584,10 @@ class KnowledgeHub(QWidget):
         root.setGeometry(0, 0, self.KW, self.KH)
         root.setObjectName("KH")
         root.setStyleSheet(
-            f"QWidget#KH{{background:{BG};border-radius:22px;"
+            f"QWidget#KH{{background:{BG};border-radius:{_s(22)}px;"
             f"border:1.5px solid {BD};}}")
         self._main_layout = QVBoxLayout(root)
-        self._main_layout.setContentsMargins(3, 0, 3, 0)
+        self._main_layout.setContentsMargins(_s(3), 0, _s(3), 0)
         self._main_layout.setSpacing(0)
 
         # ── 标题栏
@@ -574,7 +597,7 @@ class KnowledgeHub(QWidget):
         body = QWidget()
         body.setStyleSheet("background:transparent;border:none;")
         body_lay = QHBoxLayout(body)
-        body_lay.setContentsMargins(0, 0, 0, 0)
+        body_lay.setContentsMargins(_s(0), _s(0), _s(0), _s(0))
         body_lay.setSpacing(0)
 
         self._build_sidebar(body_lay)
@@ -596,11 +619,11 @@ class KnowledgeHub(QWidget):
 
     def _build_titlebar(self):
         tb = QWidget()
-        tb.setFixedHeight(48)
+        tb.setFixedHeight(_s(48))
         tb.setStyleSheet(f"background:transparent;border-bottom:1px solid {BD};")
         lay = QHBoxLayout(tb)
-        lay.setContentsMargins(16, 0, 12, 0)
-        lay.setSpacing(8)
+        lay.setContentsMargins(_s(16), 0, _s(12), 0)
+        lay.setSpacing(_s(8))
 
         lay.addWidget(_lbl("📝", 15))
         lay.addWidget(_lbl("知识中心", 14, T1, True))
@@ -609,37 +632,37 @@ class KnowledgeHub(QWidget):
         # 搜索框
         self._search_input = QLineEdit()
         self._search_input.setPlaceholderText("搜索…")
-        self._search_input.setFixedSize(140, 30)
-        self._search_input.setFont(QFont("Microsoft YaHei", 10))
+        self._search_input.setFixedSize(_s(140), _s(30))
+        self._search_input.setFont(QFont("Microsoft YaHei", _fs(10)))
         self._search_input.setStyleSheet(
-            f"QLineEdit{{background:{CARD};border:1.5px solid {BD};border-radius:15px;"
-            f"padding:0 10px 0 28px;color:{T1};font-size:10px;}}"
+            f"QLineEdit{{background:{CARD};border:1.5px solid {BD};border-radius:{_s(15)}px;"
+            f"padding:0 {_s(10)}px 0 {_s(28)}px;color:{T1};font-size:{_fs(10)}px;}}"
             f"QLineEdit:focus{{border-color:{ACC};}}")
         self._search_input.textChanged.connect(self._on_search)
         # 搜索图标叠加在输入框左侧
         search_wrap = QWidget()
-        search_wrap.setFixedSize(140, 30)
+        search_wrap.setFixedSize(_s(140), _s(30))
         search_wrap.setStyleSheet("background:transparent;border:none;")
         self._search_input.setParent(search_wrap)
-        self._search_input.setGeometry(0, 0, 140, 30)
+        self._search_input.setGeometry(0, 0, _s(140), _s(30))
         s_icon = QLabel("🔍", search_wrap)
-        s_icon.setFont(QFont("Microsoft YaHei", 10))
+        s_icon.setFont(QFont("Microsoft YaHei", _fs(10)))
         s_icon.setStyleSheet("background:transparent;border:none;color:#c4a898;")
-        s_icon.setGeometry(8, 5, 20, 20)
+        s_icon.setGeometry(_s(8), _s(5), _s(20), _s(20))
         s_icon.setAttribute(Qt.WA_TransparentForMouseEvents)
         lay.addWidget(search_wrap)
 
         # 总数
         self._total_badge = QLabel()
-        self._total_badge.setFont(QFont("Microsoft YaHei", 9))
-        self._total_badge.setFixedHeight(22)
+        self._total_badge.setFont(QFont("Microsoft YaHei", _fs(9)))
+        self._total_badge.setFixedHeight(_s(22))
         self._total_badge.setStyleSheet(
             f"background:#e8d0c0;color:{T1};border-radius:11px;"
             f"padding:0 10px;font-weight:bold;")
         lay.addWidget(self._total_badge)
 
         # 关闭
-        cb = QPushButton("✕"); cb.setFixedSize(28, 28)
+        cb = QPushButton("✕"); cb.setFixedSize(_s(28), _s(28))
         cb.setStyleSheet(
             f"QPushButton{{background:transparent;color:{T3};border:none;"
             f"font-size:13px;border-radius:14px;}}"
@@ -660,10 +683,10 @@ class KnowledgeHub(QWidget):
 
     def _build_sidebar(self, parent_lay):
         sb = QWidget()
-        sb.setFixedWidth(140)
+        sb.setFixedWidth(_s(140))
         sb.setStyleSheet(f"background:{CARD};border-right:1px solid {BD};")
         lay = QVBoxLayout(sb)
-        lay.setContentsMargins(0, 12, 0, 8)
+        lay.setContentsMargins(_s(0), _s(12), _s(0), _s(8))
         lay.setSpacing(0)
 
         lay.addWidget(self._sb_label("来源筛选"))
@@ -681,11 +704,11 @@ class KnowledgeHub(QWidget):
 
         # 分隔线
         div = QFrame()
-        div.setFixedHeight(1)
+        div.setFixedHeight(_s(1))
         div.setStyleSheet(f"background:{BD};border:none;margin:0 14px;")
-        lay.addSpacing(8)
+        lay.addSpacing(_s(8))
         lay.addWidget(div)
-        lay.addSpacing(8)
+        lay.addSpacing(_s(8))
 
         lay.addWidget(self._sb_label("快捷操作"))
 
@@ -701,10 +724,10 @@ class KnowledgeHub(QWidget):
 
         # 底部危险操作
         div2 = QFrame()
-        div2.setFixedHeight(1)
+        div2.setFixedHeight(_s(1))
         div2.setStyleSheet(f"background:{BD};border:none;margin:0 14px;")
         lay.addWidget(div2)
-        lay.addSpacing(4)
+        lay.addSpacing(_s(4))
         clear_btn = self._make_sb_action("🗑", "清除全部")
         clear_btn.setStyleSheet(
             f"QPushButton{{background:transparent;color:#c0a0a0;border:none;"
@@ -717,15 +740,15 @@ class KnowledgeHub(QWidget):
 
     def _sb_label(self, text):
         lbl = QLabel(text)
-        lbl.setFont(QFont("Microsoft YaHei", 8))
+        lbl.setFont(QFont("Microsoft YaHei", _fs(8)))
         lbl.setStyleSheet(f"color:{ACC};background:transparent;border:none;"
                           f"padding:4px 14px 2px;letter-spacing:1px;")
         return lbl
 
     def _make_sb_item(self, icon, label, key):
         btn = QPushButton(f"{icon} {label}")
-        btn.setFixedHeight(32)
-        btn.setFont(QFont("Microsoft YaHei", 10))
+        btn.setFixedHeight(_s(32))
+        btn.setFont(QFont("Microsoft YaHei", _fs(10)))
         btn.setCursor(Qt.PointingHandCursor)
         btn.setProperty("filter_key", key)
         btn.clicked.connect(lambda _, k=key: self._set_filter(k))
@@ -733,8 +756,8 @@ class KnowledgeHub(QWidget):
 
     def _make_sb_action(self, icon, label):
         btn = QPushButton(f"{icon} {label}")
-        btn.setFixedHeight(30)
-        btn.setFont(QFont("Microsoft YaHei", 10))
+        btn.setFixedHeight(_s(30))
+        btn.setFont(QFont("Microsoft YaHei", _fs(10)))
         btn.setCursor(Qt.PointingHandCursor)
         btn.setStyleSheet(
             f"QPushButton{{background:transparent;color:{ACC};border:none;"
@@ -761,13 +784,13 @@ class KnowledgeHub(QWidget):
         area = QWidget()
         area.setStyleSheet("background:transparent;border:none;")
         area_lay = QVBoxLayout(area)
-        area_lay.setContentsMargins(0, 0, 0, 0)
+        area_lay.setContentsMargins(_s(0), _s(0), _s(0), _s(0))
         area_lay.setSpacing(0)
 
         self._tl_widget = QWidget()
         self._tl_widget.setStyleSheet("background:transparent;border:none;")
         self._tl_layout = QVBoxLayout(self._tl_widget)
-        self._tl_layout.setContentsMargins(0, 6, 0, 6)
+        self._tl_layout.setContentsMargins(_s(0), _s(6), _s(0), _s(6))
         self._tl_layout.setSpacing(0)
 
         self._tl_scroll = QScrollArea()
@@ -787,8 +810,8 @@ class KnowledgeHub(QWidget):
         bb = QWidget()
         bb.setStyleSheet(f"background:transparent;border-top:1px solid {BD};")
         lay = QHBoxLayout(bb)
-        lay.setContentsMargins(14, 10, 14, 10)
-        lay.setSpacing(8)
+        lay.setContentsMargins(_s(14), _s(10), _s(14), _s(10))
+        lay.setSpacing(_s(8))
         lay.setAlignment(Qt.AlignTop)
 
         self._add_input = _MultiLineInput("输入想让桌宠记住的内容…")
@@ -796,7 +819,7 @@ class KnowledgeHub(QWidget):
         lay.addWidget(self._add_input, 1)
 
         add_btn = _btn("添加", 34, primary=True)
-        add_btn.setFixedWidth(60)
+        add_btn.setFixedWidth(_s(60))
         add_btn.clicked.connect(self._manual_add)
         lay.addWidget(add_btn, 0, Qt.AlignTop)
 
@@ -950,36 +973,36 @@ class KnowledgeHub(QWidget):
         wrapper = QWidget()
         wrapper.setStyleSheet("background:transparent;border:none;")
         wl = QVBoxLayout(wrapper)
-        wl.setContentsMargins(8, 4, 8, 4)
+        wl.setContentsMargins(_s(8), _s(4), _s(8), _s(4))
         wl.setSpacing(0)
 
         folder = QWidget()
         folder.setStyleSheet(
             f"background:{CARD2};border-radius:14px;border:1px solid {BD};")
         fl = QVBoxLayout(folder)
-        fl.setContentsMargins(10, 8, 10, 10)
-        fl.setSpacing(4)
+        fl.setContentsMargins(_s(10), _s(8), _s(10), _s(10))
+        fl.setSpacing(_s(4))
 
         # ── 标题行
         header = QHBoxLayout()
-        header.setSpacing(6)
+        header.setSpacing(_s(6))
 
         fold_btn = QPushButton("▼")
-        fold_btn.setFixedSize(20, 20)
+        fold_btn.setFixedSize(_s(20), _s(20))
         fold_btn.setStyleSheet(
             f"QPushButton{{background:transparent;color:{T2};border:none;font-size:10px;}}"
             f"QPushButton:hover{{color:{T1};}}")
         header.addWidget(fold_btn)
 
         icon_lbl = QLabel("📂")
-        icon_lbl.setFont(QFont("Microsoft YaHei", 13))
+        icon_lbl.setFont(QFont("Microsoft YaHei", _fs(13)))
         icon_lbl.setStyleSheet("background:transparent;border:none;")
         header.addWidget(icon_lbl)
 
         # 文件夹名（网络来源可编辑，其他只读）
         if editable_name:
             title_edit = QLineEdit(title)
-            title_edit.setFont(QFont("Microsoft YaHei", 11))
+            title_edit.setFont(QFont("Microsoft YaHei", _fs(11)))
             title_edit.setReadOnly(True)
             title_edit.setStyleSheet(
                 f"QLineEdit{{color:{T1};background:transparent;border:none;"
@@ -988,8 +1011,8 @@ class KnowledgeHub(QWidget):
                 f"border-radius:8px;padding:2px 6px;}}")
 
             edit_name_btn = QPushButton("✎")
-            edit_name_btn.setFixedSize(20, 20)
-            edit_name_btn.setFont(QFont("Arial", 11))
+            edit_name_btn.setFixedSize(_s(20), _s(20))
+            edit_name_btn.setFont(QFont("Arial", _fs(11)))
             edit_name_btn.setToolTip("修改文件夹名称")
             edit_name_btn.setStyleSheet(
                 f"QPushButton{{background:transparent;color:{ACC};border:none;"
@@ -1016,23 +1039,23 @@ class KnowledgeHub(QWidget):
             header.addWidget(edit_name_btn)
         else:
             title_lbl = QLabel(title)
-            title_lbl.setFont(QFont("Microsoft YaHei", 11))
+            title_lbl.setFont(QFont("Microsoft YaHei", _fs(11)))
             title_lbl.setStyleSheet(
                 f"color:{T1};background:transparent;border:none;"
                 f"font-weight:bold;padding:0;margin:0;")
             header.addWidget(title_lbl, 1)
 
         count_lbl = QLabel(f"{len(group_facts)} 条")
-        count_lbl.setFont(QFont("Microsoft YaHei", 9))
-        count_lbl.setFixedHeight(18)
+        count_lbl.setFont(QFont("Microsoft YaHei", _fs(9)))
+        count_lbl.setFixedHeight(_s(18))
         count_lbl.setStyleSheet(
             f"background:{CARD};color:{T2};border-radius:9px;"
             f"padding:0 8px;border:none;")
         header.addWidget(count_lbl)
 
         add_btn = QPushButton("+")
-        add_btn.setFixedSize(22, 22)
-        add_btn.setFont(QFont("Arial", 13))
+        add_btn.setFixedSize(_s(22), _s(22))
+        add_btn.setFont(QFont("Arial", _fs(13)))
         add_btn.setStyleSheet(
             f"QPushButton{{background:transparent;color:{ACC};border:none;"
             f"border-radius:11px;font-weight:bold;}}"
@@ -1042,8 +1065,8 @@ class KnowledgeHub(QWidget):
 
         # ── 一键删除整个文件夹
         del_folder_btn = QPushButton("🗑")
-        del_folder_btn.setFixedSize(22, 22)
-        del_folder_btn.setFont(QFont("Arial", 12))
+        del_folder_btn.setFixedSize(_s(22), _s(22))
+        del_folder_btn.setFont(QFont("Arial", _fs(12)))
         del_folder_btn.setToolTip(f"删除整个「{title}」文件夹")
         del_folder_btn.setStyleSheet(
             f"QPushButton{{background:transparent;color:{T3};border:none;"
@@ -1072,8 +1095,8 @@ class KnowledgeHub(QWidget):
         content = QWidget()
         content.setStyleSheet("background:transparent;border:none;")
         cl = QVBoxLayout(content)
-        cl.setContentsMargins(4, 4, 4, 0)
-        cl.setSpacing(3)
+        cl.setContentsMargins(_s(4), _s(4), _s(4), _s(0))
+        cl.setSpacing(_s(3))
 
         for fact in group_facts:
             try:
@@ -1093,16 +1116,16 @@ class KnowledgeHub(QWidget):
         inline_row.setStyleSheet("background:transparent;border:none;")
         inline_row.hide()
         ir = QHBoxLayout(inline_row)
-        ir.setContentsMargins(0, 4, 0, 0)
-        ir.setSpacing(6)
+        ir.setContentsMargins(_s(0), _s(4), _s(0), _s(0))
+        ir.setSpacing(_s(6))
         ir.setAlignment(Qt.AlignTop)
 
         inline_edit = _MultiLineInput(f"添加内容到「{title}」…")
         ir.addWidget(inline_edit, 1)
 
         ok_btn = QPushButton("确认")
-        ok_btn.setFixedSize(52, 34)
-        ok_btn.setFont(QFont("Microsoft YaHei", 9))
+        ok_btn.setFixedSize(_s(52), _s(34))
+        ok_btn.setFont(QFont("Microsoft YaHei", _fs(9)))
         ok_btn.setStyleSheet(
             f"QPushButton{{background:#e8d0c0;color:{T1};border:none;"
             f"border-radius:10px;font-weight:bold;}}"
@@ -1174,18 +1197,18 @@ class KnowledgeHub(QWidget):
             f"background:{CARD};border-radius:10px;"
             f"border:1px solid {BD};border-left:3px solid {_source_color(src)};")
         lay = QHBoxLayout(card)
-        lay.setContentsMargins(8, 6, 6, 6)
-        lay.setSpacing(6)
+        lay.setContentsMargins(_s(8), _s(6), _s(6), _s(6))
+        lay.setSpacing(_s(6))
 
         # ── 内容区（Label 显示 / TextEdit 编辑切换）
         body = QWidget()
         body.setStyleSheet("background:transparent;border:none;")
         bl = QVBoxLayout(body)
-        bl.setContentsMargins(0, 0, 0, 0)
-        bl.setSpacing(2)
+        bl.setContentsMargins(_s(0), _s(0), _s(0), _s(0))
+        bl.setSpacing(_s(2))
 
         txt_lbl = QLabel()
-        txt_lbl.setFont(QFont("Microsoft YaHei", 10))
+        txt_lbl.setFont(QFont("Microsoft YaHei", _fs(10)))
         txt_lbl.setWordWrap(True)
         txt_lbl.setStyleSheet(
             f"color:{T1};background:transparent;border:none;padding:0;margin:0;")
@@ -1211,10 +1234,10 @@ class KnowledgeHub(QWidget):
         bl.addWidget(txt_edit)
 
         meta_row = QHBoxLayout()
-        meta_row.setSpacing(4)
+        meta_row.setSpacing(_s(4))
         if ts:
             time_lbl = QLabel(_time_ago(ts))
-            time_lbl.setFont(QFont("Microsoft YaHei", 8))
+            time_lbl.setFont(QFont("Microsoft YaHei", _fs(8)))
             time_lbl.setStyleSheet(
                 f"color:{T3};background:transparent;border:none;padding:0;margin:0;")
             meta_row.addWidget(time_lbl)
@@ -1225,12 +1248,12 @@ class KnowledgeHub(QWidget):
 
         # ── 按钮列（编辑 / 删除）
         btn_col = QVBoxLayout()
-        btn_col.setSpacing(2)
+        btn_col.setSpacing(_s(2))
         btn_col.setAlignment(Qt.AlignTop)
 
         edit_btn = QPushButton("✎")
-        edit_btn.setFixedSize(20, 20)
-        edit_btn.setFont(QFont("Arial", 10))
+        edit_btn.setFixedSize(_s(20), _s(20))
+        edit_btn.setFont(QFont("Arial", _fs(10)))
         edit_btn.setToolTip("编辑内容")
         edit_btn.setStyleSheet(
             f"QPushButton{{background:transparent;color:{ACC};border:none;border-radius:10px;}}"
@@ -1238,8 +1261,8 @@ class KnowledgeHub(QWidget):
         btn_col.addWidget(edit_btn)
 
         del_btn = QPushButton("×")
-        del_btn.setFixedSize(20, 20)
-        del_btn.setFont(QFont("Arial", 11))
+        del_btn.setFixedSize(_s(20), _s(20))
+        del_btn.setFont(QFont("Arial", _fs(11)))
         del_btn.setStyleSheet(
             f"QPushButton{{background:transparent;color:{BD};border:none;border-radius:10px;}}"
             f"QPushButton:hover{{background:#fde8e8;color:#c06060;}}")
@@ -1285,7 +1308,7 @@ class KnowledgeHub(QWidget):
         ww = QWidget()
         ww.setStyleSheet("background:transparent;border:none;")
         wwl = QVBoxLayout(ww)
-        wwl.setContentsMargins(2, 1, 2, 1)
+        wwl.setContentsMargins(_s(2), _s(1), _s(2), _s(1))
         wwl.addWidget(card)
         return ww
 
@@ -1309,15 +1332,15 @@ class KnowledgeHub(QWidget):
         section.setStyleSheet(
             f"background:{CARD2};border-radius:14px;border:1px solid {BD};")
         sl = QVBoxLayout(section)
-        sl.setContentsMargins(12, 10, 12, 10)
-        sl.setSpacing(4)
+        sl.setContentsMargins(_s(12), _s(10), _s(12), _s(10))
+        sl.setSpacing(_s(4))
 
         # 标题
         h = QHBoxLayout()
         h.addWidget(_lbl("📌 角色设定文档（永久生效）", 10, T2, True))
         h.addStretch()
         sl.addLayout(h)
-        sl.addSpacing(6)
+        sl.addSpacing(_s(6))
 
         # 同步状态
         doc_statuses = self._cs.sync_persona_docs() if hasattr(self._cs, 'sync_persona_docs') else []
@@ -1329,15 +1352,15 @@ class KnowledgeHub(QWidget):
             doc_wrap = QWidget()
             doc_wrap.setStyleSheet("background:transparent;border:none;")
             dwl = QVBoxLayout(doc_wrap)
-            dwl.setContentsMargins(0, 0, 0, 0)
-            dwl.setSpacing(4)
+            dwl.setContentsMargins(_s(0), _s(0), _s(0), _s(0))
+            dwl.setSpacing(_s(4))
 
             row = QWidget()
             row.setStyleSheet(
                 f"background:{CARD};border-radius:10px;border:1px solid {BD};")
             rl = QHBoxLayout(row)
-            rl.setContentsMargins(10, 7, 8, 7)
-            rl.setSpacing(8)
+            rl.setContentsMargins(_s(10), _s(7), _s(8), _s(7))
+            rl.setSpacing(_s(8))
 
             icon_lbl = _lbl("📄", 15)
             rl.addWidget(icon_lbl)
@@ -1345,8 +1368,8 @@ class KnowledgeHub(QWidget):
             info = QWidget()
             info.setStyleSheet("background:transparent;border:none;")
             il = QVBoxLayout(info)
-            il.setContentsMargins(0, 0, 0, 0)
-            il.setSpacing(1)
+            il.setContentsMargins(_s(0), _s(0), _s(0), _s(0))
+            il.setSpacing(_s(1))
             name = _lbl(doc.get("name", ""), 11, T1)
             name.setStyleSheet(f"color:{T1};background:transparent;border:none;"
                                f"font-weight:bold;padding:0;margin:0;")
@@ -1370,8 +1393,8 @@ class KnowledgeHub(QWidget):
                         break
 
             pill = QLabel()
-            pill.setFont(QFont("Microsoft YaHei", 9))
-            pill.setFixedHeight(20)
+            pill.setFont(QFont("Microsoft YaHei", _fs(9)))
+            pill.setFixedHeight(_s(20))
             if status == "synced":
                 pill.setText("✓ 已同步")
                 pill.setStyleSheet(
@@ -1390,8 +1413,8 @@ class KnowledgeHub(QWidget):
             if is_default:
                 # 内置人设：编辑按钮放在状态标签左边
                 edit_btn = QPushButton("✎")
-                edit_btn.setFixedSize(22, 22)
-                edit_btn.setFont(QFont("Arial", 12))
+                edit_btn.setFixedSize(_s(22), _s(22))
+                edit_btn.setFont(QFont("Arial", _fs(12)))
                 edit_btn.setToolTip("编辑内置人设内容")
                 edit_btn.setStyleSheet(
                     f"QPushButton{{background:transparent;color:{ACC};border:none;"
@@ -1404,8 +1427,8 @@ class KnowledgeHub(QWidget):
             if not is_default:
                 # 用户导入的文档：保留删除按钮
                 del_btn = QPushButton("×")
-                del_btn.setFixedSize(22, 22)
-                del_btn.setFont(QFont("Arial", 11))
+                del_btn.setFixedSize(_s(22), _s(22))
+                del_btn.setFont(QFont("Arial", _fs(11)))
                 del_btn.setStyleSheet(
                     f"QPushButton{{background:transparent;color:{T3};border:none;"
                     f"border-radius:11px;}}"
@@ -1422,11 +1445,11 @@ class KnowledgeHub(QWidget):
                     f"background:{CARD};border-radius:10px;border:1px solid {BD};")
                 edit_area.hide()
                 eal = QVBoxLayout(edit_area)
-                eal.setContentsMargins(10, 8, 10, 8)
-                eal.setSpacing(6)
+                eal.setContentsMargins(_s(10), _s(8), _s(10), _s(8))
+                eal.setSpacing(_s(6))
 
                 persona_edit = QTextEdit()
-                persona_edit.setFont(QFont("Microsoft YaHei", 10))
+                persona_edit.setFont(QFont("Microsoft YaHei", _fs(10)))
                 persona_edit.setMinimumHeight(120)
                 persona_edit.setMaximumHeight(220)
                 persona_edit.setStyleSheet(
@@ -1439,14 +1462,14 @@ class KnowledgeHub(QWidget):
                 eal.addWidget(persona_edit)
 
                 btn_row = QHBoxLayout()
-                btn_row.setSpacing(8)
+                btn_row.setSpacing(_s(8))
                 btn_row.addStretch()
                 # NOTE: 不设 setFixedWidth，让按钮根据内边距+文字自适应宽度，
                 # 避免中文字符被截断（原60px = padding28px + 文字32px，空间不足）
                 cancel_p_btn = _btn("取消", 30)
-                cancel_p_btn.setMinimumWidth(64)
+                cancel_p_btn.setMinimumWidth(_s(64))
                 save_p_btn = _btn("保存", 30, primary=True)
-                save_p_btn.setMinimumWidth(64)
+                save_p_btn.setMinimumWidth(_s(64))
                 btn_row.addWidget(cancel_p_btn)
                 btn_row.addWidget(save_p_btn)
                 eal.addLayout(btn_row)
@@ -1492,22 +1515,22 @@ class KnowledgeHub(QWidget):
         w_container = QWidget()
         w_container.setStyleSheet("background:transparent;border:none;")
         cl = QVBoxLayout(w_container)
-        cl.setContentsMargins(8, 6, 8, 2)
+        cl.setContentsMargins(_s(8), _s(6), _s(8), _s(2))
         cl.addWidget(section)
         self._tl_layout.addWidget(w_container)
 
     def _make_day_label(self, text):
         w = QWidget()
-        w.setFixedHeight(28)
+        w.setFixedHeight(_s(28))
         w.setStyleSheet("background:transparent;border:none;")
         lay = QHBoxLayout(w)
-        lay.setContentsMargins(14, 6, 14, 0)
+        lay.setContentsMargins(_s(14), _s(6), _s(14), _s(0))
         lbl = _lbl(text, 9, ACC)
         lbl.setStyleSheet(f"color:{ACC};background:transparent;border:none;"
                           f"font-weight:bold;letter-spacing:1px;padding:0;margin:0;")
         lay.addWidget(lbl)
         line = QFrame()
-        line.setFixedHeight(1)
+        line.setFixedHeight(_s(1))
         line.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         line.setStyleSheet(f"background:{BD};border:none;")
         lay.addWidget(line, 1)
@@ -1519,20 +1542,20 @@ class KnowledgeHub(QWidget):
             f"background:{CARD};border-radius:12px;"
             f"border:1px solid {BD};border-left:3.5px solid {_source_color(src)};")
         lay = QHBoxLayout(card)
-        lay.setContentsMargins(10, 8, 8, 8)
-        lay.setSpacing(8)
+        lay.setContentsMargins(_s(10), _s(8), _s(8), _s(8))
+        lay.setSpacing(_s(8))
 
         # 来源图标
         icon = _lbl(_source_icon(src), 14)
-        icon.setFixedSize(24, 24)
+        icon.setFixedSize(_s(24), _s(24))
         lay.addWidget(icon, 0, Qt.AlignTop)
 
         # 内容区
         body = QWidget()
         body.setStyleSheet("background:transparent;border:none;")
         bl = QVBoxLayout(body)
-        bl.setContentsMargins(0, 0, 0, 0)
-        bl.setSpacing(3)
+        bl.setContentsMargins(_s(0), _s(0), _s(0), _s(0))
+        bl.setSpacing(_s(3))
 
         # 文本（搜索高亮）
         display_text = text
@@ -1542,29 +1565,29 @@ class KnowledgeHub(QWidget):
             display_text = text.replace(kw, f"【{kw}】")
 
         txt_lbl = QLabel(display_text)
-        txt_lbl.setFont(QFont("Microsoft YaHei", 10))
+        txt_lbl.setFont(QFont("Microsoft YaHei", _fs(10)))
         txt_lbl.setWordWrap(True)
         txt_lbl.setStyleSheet(f"color:{T1};background:transparent;border:none;padding:0;margin:0;")
         bl.addWidget(txt_lbl)
 
         # 元数据行
         meta = QHBoxLayout()
-        meta.setSpacing(5)
+        meta.setSpacing(_s(5))
         if ts:
             time_lbl = _lbl(_time_ago(ts), 9, T3)
             meta.addWidget(time_lbl)
 
         tag = QLabel(_source_label(src))
-        tag.setFont(QFont("Microsoft YaHei", 8))
-        tag.setFixedHeight(16)
+        tag.setFont(QFont("Microsoft YaHei", _fs(8)))
+        tag.setFixedHeight(_s(16))
         tag.setStyleSheet(f"{_source_tag_style(src)}border-radius:8px;padding:0 6px;"
                           f"border:none;")
         meta.addWidget(tag)
 
         if origin:
             otag = QLabel(origin)
-            otag.setFont(QFont("Microsoft YaHei", 8))
-            otag.setFixedHeight(16)
+            otag.setFont(QFont("Microsoft YaHei", _fs(8)))
+            otag.setFixedHeight(_s(16))
             otag.setStyleSheet(f"background:{CARD2};color:{T2};border-radius:8px;"
                                f"padding:0 6px;border:none;")
             meta.addWidget(otag)
@@ -1575,8 +1598,8 @@ class KnowledgeHub(QWidget):
 
         # 删除按钮
         del_btn = QPushButton("×")
-        del_btn.setFixedSize(22, 22)
-        del_btn.setFont(QFont("Arial", 12))
+        del_btn.setFixedSize(_s(22), _s(22))
+        del_btn.setFont(QFont("Arial", _fs(12)))
         del_btn.setStyleSheet(
             f"QPushButton{{background:transparent;color:{BD};border:none;"
             f"border-radius:11px;}}"
@@ -1588,7 +1611,7 @@ class KnowledgeHub(QWidget):
         wrapper = QWidget()
         wrapper.setStyleSheet("background:transparent;border:none;")
         wl = QVBoxLayout(wrapper)
-        wl.setContentsMargins(12, 2, 12, 2)
+        wl.setContentsMargins(_s(12), _s(2), _s(12), _s(2))
         wl.addWidget(card)
         return wrapper
 

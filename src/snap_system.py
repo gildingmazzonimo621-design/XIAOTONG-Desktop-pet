@@ -13,7 +13,7 @@ GWL_EXSTYLE = -20
 WS_EX_TOOLWINDOW = 0x00000080
 WS_EX_APPWINDOW = 0x00040000
 
-PET_SIZE = 210
+_DEFAULT_PET_SIZE = 210
 PET_WINDOW_MARGIN = 20  # window padding around sprite
 TASKBAR_MARGIN = 40     # bottom margin for taskbar
 
@@ -32,11 +32,12 @@ class SnapTarget:
 class SnapSystem:
     """Detects snap targets from screen edges and visible windows."""
 
-    def __init__(self, dpr: float = 1.0):
+    def __init__(self, dpr: float = 1.0, pet_size: int = _DEFAULT_PET_SIZE):
         self._window_cache: list[dict] = []
         self._cache_time: float = 0.0
         self._cache_interval: float = 0.5  # refresh window list every 500ms
         self._dpr: float = dpr  # device pixel ratio for coordinate conversion
+        self._pet_size: int = pet_size  # 动态桌宠尺寸（DPI 缩放后）
 
     def set_dpr(self, dpr: float):
         """更新 DPR（设备像素比），高 DPI 缩放启用后需要将
@@ -69,10 +70,10 @@ class SnapSystem:
                 continue
             # 截图/浮动预览窗口：桌宠完全在窗口上方；普通窗口：一半一半
             if w.get("is_tool"):
-                snap_y = float(top - 148)
+                snap_y = float(top - int(self._pet_size * 0.7))
                 edge_type = "preview_top"
             else:
-                snap_y = float(top - PET_SIZE / 2)
+                snap_y = float(top - self._pet_size / 2)
                 edge_type = "window_top"
             targets.append(SnapTarget(
                 edge_type, w["hwnd"],
@@ -173,33 +174,33 @@ class SnapSystem:
         self._cache_time = now
         return windows
 
-    @staticmethod
     def _distance_to_target(
-        pet_x: float, pet_y: float, target: SnapTarget
+        self, pet_x: float, pet_y: float, target: SnapTarget
     ) -> tuple[float, float, float]:
         """Return (distance, snapped_x, snapped_y) for a target."""
+        ps = self._pet_size
         if target.edge_type in ("screen_top", "screen_bottom"):
             # Horizontal edge: snap y is fixed, clamp x to valid range
             snapped_y = target.snap_y
-            clamped_x = max(target.range_min, min(target.range_max - PET_SIZE, pet_x))
+            clamped_x = max(target.range_min, min(target.range_max - ps, pet_x))
             dist_sq = (pet_x - clamped_x) ** 2 + (pet_y - snapped_y) ** 2
             return (dist_sq ** 0.5, clamped_x, snapped_y)
 
         elif target.edge_type in ("screen_left", "screen_right"):
             # Vertical edge: snap x is fixed, clamp y to valid range
             snapped_x = target.snap_x
-            clamped_y = max(target.range_min, min(target.range_max - PET_SIZE, pet_y))
+            clamped_y = max(target.range_min, min(target.range_max - ps, pet_y))
             dist_sq = (pet_x - snapped_x) ** 2 + (pet_y - clamped_y) ** 2
             return (dist_sq ** 0.5, snapped_x, clamped_y)
 
         elif target.edge_type in ("window_top", "preview_top"):
             # 计算桌宠边界框到窗口上边缘的最短距离
             if target.edge_type == "preview_top":
-                window_top = target.snap_y + 148  # snap_y = top - 148
+                window_top = target.snap_y + int(self._pet_size * 0.7)
             else:
-                window_top = target.snap_y + PET_SIZE / 2  # 一半一半: snap_y = top - PET_SIZE/2
-            pet_right = pet_x + PET_SIZE
-            pet_bottom = pet_y + PET_SIZE
+                window_top = target.snap_y + ps / 2  # 一半一半: snap_y = top - ps/2
+            pet_right = pet_x + ps
+            pet_bottom = pet_y + ps
 
             # X 方向：桌宠 X 范围 [pet_x, pet_right] 与窗口 X 范围 [range_min, range_max] 的最短距离
             if pet_right < target.range_min:
@@ -218,7 +219,7 @@ class SnapSystem:
                 dist_y = 0.0
 
             dist = (dist_x ** 2 + dist_y ** 2) ** 0.5
-            clamped_x = max(target.range_min, min(target.range_max - PET_SIZE, pet_x))
+            clamped_x = max(target.range_min, min(target.range_max - ps, pet_x))
             return (dist, clamped_x, target.snap_y)
 
         # Fallback: no valid target

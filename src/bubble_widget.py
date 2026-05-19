@@ -1,6 +1,8 @@
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QWidget, QApplication
 from PyQt5.QtCore import Qt, QTimer, QRect
 from PyQt5.QtGui import QPainter, QColor, QFont, QPainterPath, QBrush, QPen
+
+_DESIGN_H = 1440
 
 
 class BubbleWidget(QWidget):
@@ -21,6 +23,10 @@ class BubbleWidget(QWidget):
         self.fade_timer = QTimer(self)
         self.fade_timer.timeout.connect(self._fade_step)
         self.mood = None  # 存储传入的情绪
+        # ── 根据屏幕逻辑高度缩放字号 ──
+        scr = QApplication.primaryScreen()
+        _scale = min(1.0, scr.geometry().height() / _DESIGN_H) if scr else 1.0
+        self._font_sz = max(7, round(10 * _scale))
 
     def show_message(self, text, duration=3000, mood=None):
         """
@@ -30,7 +36,7 @@ class BubbleWidget(QWidget):
         self.mood = mood
         self.opacity = 1.0
         self._visible = True
-        font = QFont("Microsoft YaHei", 10)
+        font = QFont("Microsoft YaHei", self._font_sz)
         from PyQt5.QtGui import QFontMetrics
         fm = QFontMetrics(font)
         tw = fm.horizontalAdvance(text) + 40
@@ -111,7 +117,7 @@ class BubbleWidget(QWidget):
         p.drawPath(path)
 
         p.setPen(QColor(60, 60, 80))
-        p.setFont(QFont("Microsoft YaHei", 10))
+        p.setFont(QFont("Microsoft YaHei", self._font_sz))
         p.drawText(br, Qt.AlignCenter, self.text)
 
     def update_position(self, pet_x, pet_y, pet_w):
