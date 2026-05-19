@@ -87,16 +87,22 @@ class AvatarWidget(QWidget):
         self._px=None; self._mc=QColor(MC["normal"]); self.setCursor(Qt.PointingHandCursor)
         self.setToolTip("点击更换头像"); self._load()
     def _load(self):
+        _dpr = QApplication.primaryScreen().devicePixelRatio()
         for p in [_asset(AVATAR_SAVE), _asset(os.path.join("icons","avatar_default.png")), _asset(os.path.join("icons","icon.png"))]:
             if os.path.exists(p):
                 px=QPixmap(p)
-                # NOTE: KeepAspectRatioByExpanding 会让某边超出 sz，改用 KeepAspectRatio 并手动居中，
-                # 确保图片始终完整显示在圆圈内且视觉居中
-                if not px.isNull(): self._px=px.scaled(self._sz,self._sz,Qt.KeepAspectRatio,Qt.SmoothTransformation); return
+                if not px.isNull():
+                    ds = int(self._sz * _dpr)
+                    self._px=px.scaled(ds,ds,Qt.KeepAspectRatio,Qt.SmoothTransformation)
+                    self._px.setDevicePixelRatio(_dpr)
+                    return
     def load_custom(self,path):
+        _dpr = QApplication.primaryScreen().devicePixelRatio()
         px=QPixmap(path)
         if not px.isNull():
-            self._px=px.scaled(self._sz,self._sz,Qt.KeepAspectRatio,Qt.SmoothTransformation)
+            ds = int(self._sz * _dpr)
+            self._px=px.scaled(ds,ds,Qt.KeepAspectRatio,Qt.SmoothTransformation)
+            self._px.setDevicePixelRatio(_dpr)
             self._px.save(_asset(AVATAR_SAVE),"PNG"); self.update()
     def set_mood(self,k): self._mc=QColor(MC.get(k,"#5ba8d4")); self.update()
     def paintEvent(self,_):
@@ -171,12 +177,12 @@ class MemoryWindow(QWidget):
         self._cs = chat_service
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.Tool | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        # ── 根据屏幕逻辑高度等比缩放 ──
         from PyQt5.QtWidgets import QApplication
         scr = QApplication.primaryScreen()
         logical_h = scr.geometry().height() if scr else 1440
         avail_h = scr.availableGeometry().height() if scr else 1080
-        _scale = min(1.0, logical_h / self._DESIGN_H)
+        dpr = scr.devicePixelRatio() if scr else 1.0
+        _scale = min(1.0, (logical_h * dpr) / self._DESIGN_H)
         global _ui_scale; _ui_scale = _scale
         self.MW = max(260, int(self._BASE_MW * _scale))
         self.MH = max(360, int(self._BASE_MH * _scale))
@@ -326,8 +332,8 @@ class StatusPanel(QWidget):
     _test_result_signal=pyqtSignal(str)    # status text
     _action_reply_signal=pyqtSignal(str, str)  # reply, error (动作触发的 AI 回复)
 
-    _BASE_PW = 420
-    _BASE_PH = 820
+    _BASE_PW = 390
+    _BASE_PH = 800
     _DESIGN_H = 1440   # 设计基准：2560×1440 @ 100% DPI
 
     # ── 聊天内容 → 期待动作 关键词映射 ──
@@ -353,13 +359,16 @@ class StatusPanel(QWidget):
         super().__init__(parent)
         self.setWindowFlags(Qt.WindowStaysOnTopHint|Qt.Tool|Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        # ── 根据屏幕逻辑高度等比缩放面板尺寸 ──
-        # AA_EnableHighDpiScaling 使逻辑分辨率随 DPI 缩小，
-        # 固定 420x820 在高 DPI 屏幕上会显得过大
+        # ── 根据物理屏幕高度等比缩放面板尺寸 ──
+        # 用物理高度（逻辑高 × DPR）做缩放基准，
+        # 这样同一块 1080p 屏幕无论 100% 还是 125% 得到相同 scale，
+        # 125% 时 Qt 的 HighDpiScaling 再统一放大渲染，整体尺寸自然增大
         screen = QApplication.primaryScreen()
         logical_h = screen.geometry().height() if screen else 1440
         avail_h = screen.availableGeometry().height() if screen else 1080
-        _scale = min(1.0, logical_h / self._DESIGN_H)
+        dpr = screen.devicePixelRatio() if screen else 1.0
+        physical_h = logical_h * dpr
+        _scale = min(1.0, physical_h / self._DESIGN_H)
         global _ui_scale; _ui_scale = _scale
         self.PW = max(280, int(self._BASE_PW * _scale))
         self.PH = max(450, int(self._BASE_PH * _scale))
@@ -439,15 +448,11 @@ class StatusPanel(QWidget):
     def _pg_status(self):
         L=self._cl
 
-        # NOTE: 将状态页全部内容包在可滚动区域中，避免内容过多时互相挤压
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll_area.setStyleSheet(
-            f"QScrollArea{{border:none;background:transparent;}}"
-            f"QScrollBar:vertical{{width:{_s(5)}px;background:{CARD2};}}"
-            f"QScrollBar::handle:vertical{{background:{BD};border-radius:{_s(2)}px;}}"
-            f"QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{{height:0px;}}")
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setStyleSheet(f"QScrollArea{{border:none;background:transparent;}}")
         scroll_content = QWidget()
         scroll_content.setStyleSheet("background:transparent;border:none;")
         S = QVBoxLayout(scroll_content)
@@ -561,13 +566,10 @@ class StatusPanel(QWidget):
         L=self._cl
         sa=QScrollArea(); sa.setWidgetResizable(True)
         sa.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        sa.setStyleSheet(
-            f"QScrollArea{{border:none;background:transparent;}}"
-            f"QScrollBar:vertical{{width:{_s(5)}px;background:{CARD2};}}"
-            f"QScrollBar::handle:vertical{{background:{BD};border-radius:{_s(2)}px;}}"
-            f"QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{{height:0px;}}")
+        sa.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        sa.setStyleSheet(f"QScrollArea{{border:none;background:transparent;}}")
         w=QWidget(); w.setStyleSheet("background:transparent;border:none;")
-        sl=QVBoxLayout(w); sl.setContentsMargins(_s(0), _s(2), _s(4), _s(0)); sl.setSpacing(_s(14))
+        sl=QVBoxLayout(w); sl.setContentsMargins(_s(0), _s(2), _s(4), _s(0)); sl.setSpacing(_s(18))
         sl.addWidget(_lbl("📋 每日任务",13,T1,True))
         if not self._gs:
             sl.addWidget(_lbl("系统未初始化",11,T3)); sl.addStretch()
@@ -585,10 +587,10 @@ class StatusPanel(QWidget):
                 done = t["done"]
                 c=QWidget()
                 if done:
-                    c.setStyleSheet(f"background:#f6f9f7;border-radius:{_s(14)}px;border:1.5px solid #dce8df;")
+                    c.setStyleSheet(f"background:#f6f9f7;border-radius:{_s(12)}px;border:1.5px solid #dce8df;")
                 else:
-                    c.setStyleSheet(f"background:{CARD};border-radius:{_s(14)}px;border:1.5px solid {BD};")
-                cl=QVBoxLayout(c); cl.setContentsMargins(_s(14), _s(12), _s(14), _s(12)); cl.setSpacing(_s(3))
+                    c.setStyleSheet(f"background:{CARD};border-radius:{_s(12)}px;border:1.5px solid {BD};")
+                cl=QVBoxLayout(c); cl.setContentsMargins(_s(12), _s(10), _s(12), _s(10)); cl.setSpacing(_s(3))
                 ico = _TASK_ICON.get(t.get("stat", ""), "📌")
                 tr=QHBoxLayout(); tr.setSpacing(_s(6))
                 if done:
@@ -609,7 +611,7 @@ class StatusPanel(QWidget):
                     dr.addWidget(_lbl(f"💰+{t['reward']}",9,TB))
                 cl.addLayout(dr)
                 if not done:
-                    bar=GradBar("#f0b060","#f8d090"); bar.setFixedHeight(_s(7))
+                    bar=GradBar("#f0b060","#f8d090"); bar.setFixedHeight(_s(6))
                     bar.set_value(int(t["progress"]/t["target"]*100) if t["target"]>0 else 0)
                     cl.addWidget(bar)
                 sl.addWidget(c)
@@ -631,14 +633,10 @@ class StatusPanel(QWidget):
             L.addStretch()
             return
 
-        # ── 可滚动内容区 ─────────────────────────────────────
         sa = QScrollArea(); sa.setWidgetResizable(True)
         sa.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        sa.setStyleSheet(
-            f"QScrollArea{{border:none;background:transparent;}}"
-            f"QScrollBar:vertical{{width:{_s(5)}px;background:{CARD2};}}"
-            f"QScrollBar::handle:vertical{{background:{BD};border-radius:{_s(2)}px;}}"
-            f"QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{{height:0px;}}")
+        sa.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        sa.setStyleSheet(f"QScrollArea{{border:none;background:transparent;}}")
         sw = QWidget(); sw.setStyleSheet("background:transparent;border:none;")
         sl = QVBoxLayout(sw); sl.setContentsMargins(_s(0), _s(2), _s(4), _s(0)); sl.setSpacing(_s(10))
 
@@ -678,7 +676,7 @@ class StatusPanel(QWidget):
                     f"QFrame:hover{{background:{BGB};"
                     f"border-left-color:{BD2};border-right-color:{BD2};border-bottom-color:{BD2};}}")
                 rl = QHBoxLayout(row)
-                rl.setContentsMargins(_s(16), _s(10), _s(16), _s(14)); rl.setSpacing(0)
+                rl.setContentsMargins(_s(16), _s(10), _s(16), _s(13)); rl.setSpacing(0)
 
                 # 表情圆圈
                 emoji_str = s['name'].split()[0]
@@ -731,14 +729,10 @@ class StatusPanel(QWidget):
             L.addStretch()
             return
 
-        # ── 可滚动内容区 ─────────────────────────────────────
         sa = QScrollArea(); sa.setWidgetResizable(True)
         sa.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        sa.setStyleSheet(
-            f"QScrollArea{{border:none;background:transparent;}}"
-            f"QScrollBar:vertical{{width:{_s(5)}px;background:{CARD2};}}"
-            f"QScrollBar::handle:vertical{{background:{BD};border-radius:{_s(2)}px;}}"
-            f"QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{{height:0px;}}")
+        sa.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        sa.setStyleSheet(f"QScrollArea{{border:none;background:transparent;}}")
         sw = QWidget(); sw.setStyleSheet("background:transparent;border:none;")
         sl = QVBoxLayout(sw); sl.setContentsMargins(_s(0), _s(2), _s(4), _s(0)); sl.setSpacing(_s(10))
 
@@ -752,7 +746,7 @@ class StatusPanel(QWidget):
                 f"QFrame{{background:{CARD};border:1.5px solid {BD};border-radius:{_s(14)}px;}}"
                 f"QFrame:hover{{background:{BGB};border-color:{BD2};}}")
             rl = QHBoxLayout(row)
-            rl.setContentsMargins(_s(0), _s(14), _s(16), _s(14)); rl.setSpacing(0)
+            rl.setContentsMargins(_s(0), _s(12), _s(16), _s(12)); rl.setSpacing(0)
 
             # 左侧彩色竖条
             stripe = QFrame(); stripe.setFixedWidth(_s(5))
@@ -1258,10 +1252,13 @@ class StatusPanel(QWidget):
                         qr_img.setPixelColor(x, y, bg_c)
             qr_lbl = QLabel()
             qr_sz = _s(120)
+            _dpr = QApplication.primaryScreen().devicePixelRatio()
             qr_pix = QPixmap.fromImage(qr_img).scaled(
-                qr_sz, qr_sz, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                int(qr_sz * _dpr), int(qr_sz * _dpr),
+                Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            qr_pix.setDevicePixelRatio(_dpr)
             qr_lbl.setPixmap(qr_pix)
-            qr_lbl.setFixedSize(qr_pix.size())
+            qr_lbl.setFixedSize(qr_sz, qr_sz)
             qr_lbl.setAlignment(Qt.AlignCenter)
             qr_lbl.setStyleSheet("background:transparent;border:none;")
             left_col.addWidget(qr_lbl, 0, Qt.AlignCenter)
@@ -1285,26 +1282,29 @@ class StatusPanel(QWidget):
         right_col.addWidget(about_author)
         wx_row = QHBoxLayout(); wx_row.setSpacing(_s(4))
         wx_icon = QLabel()
-        wx_pix = QPixmap(18, 16); wx_pix.fill(QColor(0, 0, 0, 0))
+        _w, _h = _s(18), _s(16)
+        wx_pix = QPixmap(_w, _h); wx_pix.fill(QColor(0, 0, 0, 0))
+        _k = _w / 18.0
         _p = QPainter(wx_pix)
         _p.setRenderHint(QPainter.Antialiasing)
-        _p.setPen(QPen(QColor("#07c160"), 1.4)); _p.setBrush(Qt.NoBrush)
+        _p.setPen(QPen(QColor("#07c160"), 1.4 * _k)); _p.setBrush(Qt.NoBrush)
         p1 = QPainterPath()
-        p1.addRoundedRect(0.8, 3.0, 10.0, 8.0, 3.0, 3.0)
-        p1.moveTo(3.5, 11.0); p1.lineTo(1.5, 14.0)
+        p1.addRoundedRect(0.8*_k, 3.0*_k, 10.0*_k, 8.0*_k, 3.0*_k, 3.0*_k)
+        p1.moveTo(3.5*_k, 11.0*_k); p1.lineTo(1.5*_k, 14.0*_k)
         _p.drawPath(p1)
         _p.setPen(Qt.NoPen); _p.setBrush(QBrush(QColor("#07c160")))
-        _p.drawEllipse(3, 5, 2, 2); _p.drawEllipse(7, 5, 2, 2)
-        _p.setPen(QPen(QColor("#07c160"), 1.2)); _p.setBrush(Qt.NoBrush)
+        _p.drawEllipse(round(3*_k), round(5*_k), round(2*_k), round(2*_k))
+        _p.drawEllipse(round(7*_k), round(5*_k), round(2*_k), round(2*_k))
+        _p.setPen(QPen(QColor("#07c160"), 1.2 * _k)); _p.setBrush(Qt.NoBrush)
         p2 = QPainterPath()
-        p2.addRoundedRect(7.5, 0.8, 9.5, 7.5, 2.8, 2.8)
-        p2.moveTo(14.5, 8.3); p2.lineTo(16.0, 11.0)
+        p2.addRoundedRect(7.5*_k, 0.8*_k, 9.5*_k, 7.5*_k, 2.8*_k, 2.8*_k)
+        p2.moveTo(14.5*_k, 8.3*_k); p2.lineTo(16.0*_k, 11.0*_k)
         _p.drawPath(p2)
         _p.setPen(Qt.NoPen); _p.setBrush(QBrush(QColor("#07c160")))
-        _p.drawEllipse(10, 3, 2, 2); _p.drawEllipse(13, 3, 2, 2)
+        _p.drawEllipse(round(10*_k), round(3*_k), round(2*_k), round(2*_k))
+        _p.drawEllipse(round(13*_k), round(3*_k), round(2*_k), round(2*_k))
         _p.end()
-        wx_pix = wx_pix.scaled(_s(18), _s(16), Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        wx_icon.setPixmap(wx_pix); wx_icon.setFixedSize(_s(18), _s(16))
+        wx_icon.setPixmap(wx_pix); wx_icon.setFixedSize(_w, _h)
         wx_icon.setStyleSheet("background:transparent;border:none;")
         wx_row.addWidget(wx_icon)
         wx_id = _lbl("xy12981118", 9, T3)

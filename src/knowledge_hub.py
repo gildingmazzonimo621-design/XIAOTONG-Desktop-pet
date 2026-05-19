@@ -545,11 +545,11 @@ class KnowledgeHub(QWidget):
         self._search_text = ""
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.Tool | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        # ── 根据屏幕逻辑高度等比缩放 ──
         scr = QApplication.primaryScreen()
         avail_h = scr.availableGeometry().height() if scr else 1080
         logical_h = scr.geometry().height() if scr else 1440
-        _scale = min(1.0, logical_h / self._DESIGN_H)
+        dpr = scr.devicePixelRatio() if scr else 1.0
+        _scale = min(1.0, (logical_h * dpr) / self._DESIGN_H)
         global _ui_scale
         _ui_scale = _scale
         self.KW = max(480, int(self._BASE_KW * _scale))

@@ -12,8 +12,71 @@ if sys.platform == "win32":
     import ctypes
     _mutex = ctypes.windll.kernel32.CreateMutexW(None, False, "XiaotongDesktopPet_SingleInstance")
     if ctypes.windll.kernel32.GetLastError() == 183:
-        ctypes.windll.user32.MessageBoxW(
-            0, "桌宠已经在运行中了哦~\n请检查系统托盘 🐾", "蓝色小嗵", 0x40)
+        def _dup_dialog():
+            from PyQt5.QtWidgets import (QApplication, QDialog, QLabel,
+                QPushButton, QVBoxLayout, QHBoxLayout, QFrame,
+                QGraphicsDropShadowEffect)
+            from PyQt5.QtCore import Qt
+            from PyQt5.QtGui import QFont, QPixmap, QColor
+            QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+            QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+            app = QApplication(sys.argv)
+            dlg = QDialog(None, Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+            dlg.setAttribute(Qt.WA_TranslucentBackground)
+            lay = QVBoxLayout(dlg)
+            lay.setContentsMargins(16, 12, 16, 16)
+            card = QFrame(); card.setObjectName("c")
+            card.setStyleSheet(
+                "QFrame#c{background:qlineargradient(x1:0,y1:0,x2:0,y2:1,"
+                "stop:0 #f8faff,stop:1 #eef2fa);"
+                "border-radius:16px;border:1px solid #d0d8e8}"
+                "QLabel{background:transparent;border:none}")
+            sh = QGraphicsDropShadowEffect()
+            sh.setBlurRadius(24); sh.setColor(QColor(0,0,0,50)); sh.setOffset(0,4)
+            card.setGraphicsEffect(sh)
+            lay.addWidget(card)
+            inner = QVBoxLayout(card)
+            inner.setContentsMargins(28, 22, 28, 20); inner.setSpacing(10)
+            row = QHBoxLayout()
+            _base = (sys._MEIPASS if getattr(sys, "frozen", False)
+                     else os.path.dirname(os.path.abspath(__file__)))
+            ico = QLabel()
+            px = QPixmap(os.path.join(_base, "icons", "icon.png"))
+            if not px.isNull():
+                ico.setPixmap(px.scaled(36, 36, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            ico.setFixedSize(40, 40)
+            row.addWidget(ico)
+            t = QLabel("蓝色小嗵")
+            t.setFont(QFont("Microsoft YaHei", 13, QFont.Bold))
+            t.setStyleSheet("color:#3a4a6a;")
+            row.addWidget(t); row.addStretch()
+            inner.addLayout(row)
+            m = QLabel("桌宠已经在运行中了哦~\n\n请检查系统托盘 \U0001f43e")
+            m.setFont(QFont("Microsoft YaHei", 11))
+            m.setStyleSheet("color:#5a6a8a;")
+            m.setAlignment(Qt.AlignCenter)
+            inner.addWidget(m)
+            inner.addSpacing(6)
+            btn = QPushButton("我知道了")
+            btn.setFixedSize(110, 36)
+            btn.setFont(QFont("Microsoft YaHei", 10))
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setStyleSheet(
+                "QPushButton{background:qlineargradient(x1:0,y1:0,x2:0,y2:1,"
+                "stop:0 #6a8fd8,stop:1 #5a7fc8);"
+                "color:white;border-radius:10px;border:none}"
+                "QPushButton:hover{background:qlineargradient(x1:0,y1:0,x2:0,y2:1,"
+                "stop:0 #7a9fe8,stop:1 #6a8fd8)}"
+                "QPushButton:pressed{background:#4a6fb8}")
+            btn.clicked.connect(dlg.accept)
+            brow = QHBoxLayout()
+            brow.addStretch(); brow.addWidget(btn); brow.addStretch()
+            inner.addLayout(brow)
+            dlg.setFixedSize(350, 260)
+            g = app.primaryScreen().availableGeometry()
+            dlg.move((g.width() - 350) // 2, (g.height() - 260) // 2)
+            dlg.exec_()
+        _dup_dialog()
         sys.exit(0)
 
 from PyQt5.QtCore import (Qt, QTimer, QPoint, QRectF, pyqtSignal)
@@ -431,8 +494,8 @@ class PetWindow(QWidget):
         self._land_squash_timer  = 0.0
 
         # ── 吸附系统 ────────────────────────────────────────────────
-        dpr = QApplication.primaryScreen().devicePixelRatio()
-        self._snap_system = SnapSystem(dpr=dpr, pet_size=PET_SIZE)
+        self._dpr = QApplication.primaryScreen().devicePixelRatio()
+        self._snap_system = SnapSystem(dpr=self._dpr, pet_size=PET_SIZE)
         self._is_snapped       = False
         self._snap_target_type = ""
         self._snap_target_hwnd: int | None = None
@@ -492,9 +555,11 @@ class PetWindow(QWidget):
 
     def _on_mouse_global_move(self, x: int, y: int):
         self.input_state.on_mouse_move(x, y)
-        self._prev_mouse_x = float(x)
-        self._gaze_x = float(x)
-        self._gaze_y = float(y)
+        lx = x / self._dpr
+        ly = y / self._dpr
+        self._prev_mouse_x = lx
+        self._gaze_x = lx
+        self._gaze_y = ly
 
 
     def _on_mouse_global_press(self, btn: str):
@@ -1029,7 +1094,7 @@ class PetWindow(QWidget):
             painter.drawEllipse(int(ex - r), int(ey - r), r * 2, r * 2)
             # 高光
             painter.setBrush(QColor(255, 255, 255, 110))
-            hr = 3
+            hr = max(1, round(14.6 * S))
             painter.drawEllipse(int(ex + 2.5 * S + actual_gx * 3.0 * S), int(ey - 5.0 * S), hr, hr)
 
         # ── 嘴巴（1.2×） ────────────────────────────────────────────
@@ -1648,15 +1713,13 @@ def main():
     global PET_SIZE
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
-    # ── 根据屏幕逻辑高度动态调整桌宠尺寸 ──
-    # AA_EnableHighDpiScaling 使逻辑分辨率随 DPI 缩小，
-    # 等比缩放 PET_SIZE 保持一致的屏幕占比
+    # ── 根据物理屏幕高度动态调整桌宠尺寸 ──
+    # 用物理高度（逻辑高 × DPR）做基准，
+    # 同一块屏幕无论 DPI 设多少都得到相同 scale
     _scr = QApplication.primaryScreen()
     if _scr:
-        _logical_h = _scr.geometry().height()  # 完整屏幕逻辑高度（不受任务栏影响）
-        # 等比缩放：保持与基准屏幕一致的物理占比（14.6%）
-        # min(1.0, ...) 只缩小不放大，大屏维持原尺寸
-        _scale = min(1.0, _logical_h / _DESIGN_H)
+        _physical_h = _scr.geometry().height() * _scr.devicePixelRatio()
+        _scale = min(1.0, _physical_h / _DESIGN_H)
         PET_SIZE = max(120, int(210 * _scale))
     window = PetWindow()
     sys.exit(app.exec_())
