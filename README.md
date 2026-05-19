@@ -21,11 +21,20 @@ TA 会跟着你的鼠标转眼睛，你喂 TA，TA 会高兴；你忘了 TA，TA
 ### 桌面陪伴
 
 - 常驻桌面，不遮挡、不打扰；同一时间只允许运行一个实例
+- 系统托盘驻留，双击唤出面板，右键快捷菜单
 - idle 状态下眼睛实时跟随鼠标光标
 - 可拖拽抛出，带重力下落和边界回弹
 - 自动吸附到打开的窗口顶部，跟随窗口移动
 - 感知键盘输入节奏：打字时会抖动欢呼，高速输入有专属反应
-- 15 种动作动画：行走、摸头、吃东西、睡觉、唤醒、玩耍、变猫猫、学习、拖拽、吸附、坠落、着陆等
+- 透明度滑块，20%–100% 随意调节
+- 12 套基础动画 + 7 套道具动画：行走、摸头、吃东西、睡觉、唤醒、玩耍、变猫猫、学习、拖拽、吸附等
+
+### 跨屏适配
+
+- 自动检测屏幕逻辑分辨率，桌宠和所有面板等比缩放
+- 以 2560×1440 为设计基准，任何 DPI / 缩放比例下保持一致的屏幕占比
+- 面板内部字体、按钮、图标、边距同步缩放，不会出现截断或溢出
+- 打包为 EXE 后在不同电脑上开箱即用，无需手动调整
 
 ### 养成系统
 
@@ -43,11 +52,13 @@ TA 会跟着你的鼠标转眼睛，你喂 TA，TA 会高兴；你忘了 TA，TA
 - 对话以气泡形式实时显示在桌宠旁边
 - 对话内容自动触发匹配动画（聊到"吃"会播放吃东西动画等）
 - 根据时段（早/午/晚/夜）、心情、动作自动生成不同台词
+- 独立的记忆管理窗口，支持手动添加或清除记忆
 
 ### 知识中心
 
 - 独立的知识中心窗口，统一管理桌宠的所有记忆
 - 记忆按来源自动分类：对话提取、文档导入、网络爬取、手动添加
+- 文件夹式组织，支持自定义分类
 - 角色设定文档永久生效，可直接在界面内编辑，也可导入外部 `.txt` 文档
 - 一键网页信息搜集：支持 B 站视频、百度百科、通用网页，抓取后自动入库
 - 关键字搜索与分类筛选
@@ -92,7 +103,7 @@ pip install pyinstaller
 python -m PyInstaller tools/build_onefile.spec --noconfirm
 ```
 
-打包后的 `dist/xiaotong.exe` 即为完整程序，双击运行，无需 Python 环境。
+打包后的 `dist/xiaotong.exe` 即为完整程序，双击运行，无需 Python 环境。用户数据自动存放在 EXE 同级的 `geren/` 目录下。
 
 ---
 
@@ -100,7 +111,7 @@ python -m PyInstaller tools/build_onefile.spec --noconfirm
 
 ```
 desktop-pet/
-├── geren/                        # 用户数据（自动创建）
+├── geren/                        # 用户数据（自动创建，跟随程序）
 │   ├── chat_config.json          # API 配置
 │   ├── chat_memory.json          # 聊天记录与记忆
 │   ├── pet_save.json             # 宠物存档
@@ -116,20 +127,21 @@ desktop-pet/
 ## 项目结构
 
 ```
+main.py                           # 入口：桌宠窗口、物理引擎、托盘菜单
 src/
-├── pet_state.py              # 宠物状态与属性管理
-├── pet_animator.py           # 动画状态机与帧计时
-├── pet_renderer_sprite.py    # 精灵渲染与帧序列加载
-├── bubble_widget.py          # 桌面气泡弹窗
-├── input_monitor.py          # 全局键盘/鼠标事件监听
-├── chat_service.py           # 接口调用与记忆提取
-├── game_systems.py           # 签到、任务、成就、商店、背包
-├── status_panel.py           # 个人中心面板（7 个标签页）
-├── knowledge_hub.py          # 知识中心窗口
-├── snap_system.py            # 窗口吸附检测
-├── web_crawler.py            # 网页内容抓取
-├── pak_loader.py             # 动画资源包加载
-└── user_data.py              # 数据路径管理与旧版迁移
+├── pet_state.py                  # 宠物状态与属性管理
+├── pet_animator.py               # 动画状态机与帧计时
+├── pet_renderer_sprite.py        # 精灵渲染与帧序列加载
+├── bubble_widget.py              # 桌面气泡弹窗（DPI 自适应字号）
+├── input_monitor.py              # 全局键盘/鼠标事件监听
+├── chat_service.py               # 接口调用与记忆提取
+├── game_systems.py               # 签到、任务、成就、商店、背包
+├── status_panel.py               # 个人中心面板（7 个标签页 + 记忆管理窗口）
+├── knowledge_hub.py              # 知识中心窗口（文件夹 + 搜索 + 爬取）
+├── snap_system.py                # 窗口吸附检测（DPI 感知坐标转换）
+├── web_crawler.py                # 网页内容抓取（纯标准库）
+├── pak_loader.py                 # 动画资源包加载
+└── user_data.py                  # 数据路径管理与旧版迁移
 ```
 
 ---
@@ -137,9 +149,9 @@ src/
 ## 技术栈
 
 - **Python 3.10+**
-- **PyQt5** — 界面与渲染
+- **PyQt5** — 界面与渲染，启用 `AA_EnableHighDpiScaling` 适配高 DPI 屏幕
 - **pynput** — 全局键盘/鼠标监听
-- **Win32 API (ctypes)** — 窗口枚举、DPI 感知、吸附检测
+- **Win32 API (ctypes)** — 窗口枚举、DPI 感知、单实例互斥锁、吸附检测
 - **urllib / ssl** — 标准库 HTTP，无第三方网络依赖
 
 ---
