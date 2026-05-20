@@ -654,9 +654,9 @@ class StatusPanel(QWidget):
             sl.addStretch(); sl.addWidget(empty); sl.addStretch()
         else:
             for iid, cnt in bp.items():
-                sl.addStretch(1)
                 s = SHOP_MAP.get(iid)
                 if not s: continue
+                sl.addStretch(1)
                 usable = self._gs.can_use_item(iid, self._ps)[0] if self._ps else True
                 accent, abg = _ITEM_ACCENT.get(iid, _ITEM_ACCENT_DEFAULT)
                 if not usable:

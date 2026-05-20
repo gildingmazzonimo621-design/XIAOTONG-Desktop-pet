@@ -1126,6 +1126,8 @@ class PetWindow(QWidget):
                 # 物理状态下：先记录点击，等 mouseDoubleClickEvent 窗口期
                 # 用一个短 timer 区分单击 vs 双击
                 self._physics_click_pos   = event.pos()
+                if hasattr(self, '_physics_click_timer') and self._physics_click_timer.isActive():
+                    self._physics_click_timer.stop()
                 self._physics_click_timer = QTimer(self)
                 self._physics_click_timer.setSingleShot(True)
                 self._physics_click_timer.timeout.connect(self._on_physics_single_click)
@@ -1426,7 +1428,10 @@ class PetWindow(QWidget):
 
         # 道具动画期间压制：自动对话 + 关键词动画 + 气泡 + auto_walk
         self._item_playing = True
-        QTimer.singleShot(2200, self._clear_item_playing)
+        # 根据实际动画帧数计算时长，fallback 2200ms
+        _seq = self.renderer._seqs.get(anim)
+        _dur = int(_seq.count / _seq.fps * 1000) + 200 if _seq else 2200
+        QTimer.singleShot(_dur, self._clear_item_playing)
 
         # 显示 RPG 斜角爆出数值标签（不弹气泡，避免视觉干扰）
         # 必须保持引用，否则 CPython 立即 GC → QTimer 被销毁 → 动画不播放
