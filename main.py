@@ -398,6 +398,10 @@ class PetWindow(QWidget):
         super().__init__()
         self._proactive_reply.connect(self._on_proactive_reply)
 
+        # DPI 等比缩放系数（与 status_panel._ui_scale 同公式）
+        _scr = QApplication.primaryScreen()
+        self._ui_scale = min(1.0, _scr.geometry().height() / _DESIGN_H) if _scr else 1.0
+
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
@@ -844,10 +848,10 @@ class PetWindow(QWidget):
         raw_dx = self._gaze_x - pet_cx
         raw_dy = self._gaze_y - pet_cy
         dist   = (raw_dx**2 + raw_dy**2)**0.5 + 0.001
-        max_gaze = 25.0
-        gaze_dx  = (raw_dx / dist) * min(dist * 0.12, max_gaze)
-        gaze_dy  = (raw_dy / dist) * min(dist * 0.08, max_gaze * 0.6)
-        alpha = 1.0 - 0.88 ** (dt * 60)
+        max_gaze = 30.0
+        gaze_dx  = (raw_dx / dist) * min(dist * 0.20, max_gaze)
+        gaze_dy  = (raw_dy / dist) * min(dist * 0.14, max_gaze * 0.6)
+        alpha = 1.0 - 0.82 ** (dt * 60)
         self._gaze_smooth_x += (gaze_dx - self._gaze_smooth_x) * alpha
         self._gaze_smooth_y += (gaze_dy - self._gaze_smooth_y) * alpha
 
@@ -1084,22 +1088,22 @@ class PetWindow(QWidget):
 
         # ── 眼睛 ────────────────────────────────────────────────────
         # 水平偏移和垂直偏移分开控制，避免向下看时眼睛贴近嘴巴
-        EYE_SHIFT_X = 14.0 * S   # 左右位移
-        EYE_SHIFT_Y =  5.0 * S   # 上下位移（限制小，保持与嘴的距离）
-        EYE_R       = 18.0 * S   # 眼睛半径
-        # 眼睛基准 Y (-655*S)，嘴巴在 -612*S，差距 43*S
-        # 眼底 = -655+16 = -639*S；向下最多移 5*S → -634*S；离嘴 22*S，足够安全
+        EYE_SHIFT_X = max(2.0, 14.0 * S)   # 左右位移（保证最小位移量）
+        EYE_SHIFT_Y = max(1.0,  5.0 * S)   # 上下位移（限制小，保持与嘴的距离）
+        EYE_R       = max(2.0, 18.0 * S)   # 眼睛半径
+        # 使用 QRectF 浮点绘制，避免 int 截断导致高 DPI 下高光错位
         eye_base  = [(-81.0 * S, -655.0 * S), (+75.0 * S, -655.0 * S)]
         for bx, by in eye_base:
             ex = bx + actual_gx * EYE_SHIFT_X
             ey = by + gy * EYE_SHIFT_Y
             painter.setBrush(QColor(10, 10, 15, 245))
-            r = max(2, int(round(EYE_R)))
-            painter.drawEllipse(int(ex - r), int(ey - r), r * 2, r * 2)
+            painter.drawEllipse(QRectF(ex - EYE_R, ey - EYE_R, EYE_R * 2, EYE_R * 2))
             # 高光
             painter.setBrush(QColor(255, 255, 255, 110))
-            hr = max(1, round(14.6 * S))
-            painter.drawEllipse(int(ex + 2.5 * S + actual_gx * 3.0 * S), int(ey - 5.0 * S), hr, hr)
+            hr = max(1.0, 14.6 * S)
+            hx = ex + 2.5 * S + actual_gx * 3.0 * S
+            hy = ey - 5.0 * S
+            painter.drawEllipse(QRectF(hx, hy, hr, hr))
 
         # ── 嘴巴（1.2×） ────────────────────────────────────────────
         MOUTH_SHIFT_X = 5.0 * S
@@ -1616,33 +1620,42 @@ class PetWindow(QWidget):
                     break
         return icon
 
+    # ── 共用菜单样式（DPI 缩放） ──────────────────────────────────
+    def _menu_css(self):
+        u = self._ui_scale
+        def p(v): return max(1, round(v * u))
+        def f(v): return max(7, round(v * u))
+        return (
+            f"QMenu {{ background:#f5f7fb; border:{max(1,round(1.5*u))}px solid #c8d4e8;"
+            f"  border-radius:{p(10)}px; padding:{p(6)}px 0;"
+            f"  font-family:'Microsoft YaHei'; font-size:{f(13)}px; }}"
+            f"QMenu::item {{ padding:{p(6)}px {p(16)}px; color:#3a4a6a;"
+            f"  border-radius:{p(6)}px; margin:{p(1)}px {p(4)}px; }}"
+            f"QMenu::item:selected {{ background:#dce8fa; color:#2a5bb5; }}"
+            f"QMenu::separator {{ height:1px; background:#dce4f0;"
+            f"  margin:{p(4)}px {p(12)}px; }}"
+            f"QSlider::groove:horizontal {{ height:{p(4)}px; background:#dce4f0;"
+            f"  border-radius:{p(2)}px; }}"
+            f"QSlider::handle:horizontal {{ width:{p(12)}px; height:{p(12)}px;"
+            f"  margin:-{p(4)}px 0; background:#6a8fd8; border-radius:{p(6)}px; }}"
+            f"QSlider::sub-page:horizontal {{ background:#6a8fd8;"
+            f"  border-radius:{p(2)}px; }}"
+        )
+
     def _setup_tray(self):
         self._tray = QSystemTrayIcon(self)
         self._tray.setIcon(self._make_tray_icon())
         self._tray.setToolTip("蓝色小嗵  右键查看菜单")
         menu = QMenu()
-        menu.addSection("互动")
-        for label, slot in [("🍔 喂食", self._on_feed), ("✋ 摸摸头", self._on_pet),
-                             ("🏸 羽毛球", self._on_game), ("🐱 变猫猫", self._on_cat),
-                             ("📖 学习", self._on_study),
-                             ("💤 睡觉",   self._on_sleep),
-                             ("🌅 唤醒", self._on_wake)]:
-            a = QAction(label, self); a.triggered.connect(slot); menu.addAction(a)
-        menu.addSeparator()
-        a_rename = QAction("✏️ 改名", self)
-        a_rename.triggered.connect(self._show_rename_dialog)
-        menu.addAction(a_rename)
-        a_panel = QAction("📊 查看状态", self)
+        menu.setWindowFlags(menu.windowFlags() | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint)
+        menu.setAttribute(Qt.WA_TranslucentBackground)
+        menu.setStyleSheet(self._menu_css())
+        a_panel = QAction("📊 个人中心", self)
         a_panel.triggered.connect(self._show_panel)
         menu.addAction(a_panel)
-        menu.addSection("透明度")
-        ow = QWidget(); ol = __import__("PyQt5.QtWidgets", fromlist=["QHBoxLayout"]).QHBoxLayout(ow)
-        ol.setContentsMargins(8, 4, 8, 4)
-        lbl = QLabel("不透明度"); lbl.setStyleSheet("color:#555; font-size:12px;")
-        sld = QSlider(Qt.Horizontal); sld.setRange(20, 100); sld.setValue(self._opacity_pct)
-        sld.setFixedWidth(110); sld.valueChanged.connect(self._set_opacity)
-        ol.addWidget(lbl); ol.addWidget(sld)
-        wa = QWidgetAction(self); wa.setDefaultWidget(ow); menu.addAction(wa)
+        a_mem = QAction("📝 记忆管理", self)
+        a_mem.triggered.connect(self._open_memory_from_tray)
+        menu.addAction(a_mem)
         menu.addSeparator()
         a_quit = QAction("❌ 退出", self); a_quit.triggered.connect(self._quit)
         menu.addAction(a_quit)
@@ -1650,12 +1663,14 @@ class PetWindow(QWidget):
         self._tray.activated.connect(self._on_tray_activated)
         self._tray.show()
 
-    def _show_rename_dialog(self):
-        from PyQt5.QtWidgets import QInputDialog
-        name, ok = QInputDialog.getText(None, "修改名字", "给你的宠物起个新名字吧：",
-                                        text=self.state.name)
-        if ok and name.strip():
-            self._on_rename(name.strip()[:12])
+    def _open_memory_from_tray(self):
+        """从托盘打开记忆管理 — 关闭时不回退到个人中心"""
+        cs = getattr(self.panel, '_cs', None)
+        if not cs:
+            return
+        from src.knowledge_hub import KnowledgeHub
+        self._mem_win_tray = KnowledgeHub(cs, parent_panel=None, parent=None)
+        self._mem_win_tray.show()
 
     def _on_tray_activated(self, reason):
         if reason == QSystemTrayIcon.DoubleClick:
@@ -1691,25 +1706,53 @@ class PetWindow(QWidget):
         self.panel.raise_()
 
     def _show_context_menu(self, global_pos: QPoint):
+        from PyQt5.QtWidgets import QHBoxLayout
         menu = QMenu(self)
-        menu.setStyleSheet("""
-            QMenu { background:#f5f7fb; border:1.5px solid #c8d4e8; border-radius:10px;
-                    padding:6px 0; font-family:"Microsoft YaHei"; font-size:13px; }
-            QMenu::item { padding:6px 22px; color:#3a4a6a; border-radius:6px; margin:1px 4px; }
-            QMenu::item:selected { background:#dce8fa; color:#2a5bb5; }
-            QMenu::separator { height:1px; background:#dce4f0; margin:4px 12px; }
-        """)
-        for label, slot in [("🍔 喂食",   self._on_feed), ("✋ 摸摸头", self._on_pet),
-                             ("🏸 羽毛球", self._on_game), ("🐱 变猫猫", self._on_cat),
-                             ("📖 学习", self._on_study), ("💤 睡觉",   self._on_sleep),
-                             ("🌅 唤醒",  self._on_wake)]:
+        menu.setWindowFlags(Qt.Popup | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint)
+        menu.setAttribute(Qt.WA_TranslucentBackground)
+        menu.setStyleSheet(self._menu_css())
+        u = self._ui_scale
+        _p = lambda v: max(1, round(v * u))
+        _f = lambda v: max(7, round(v * u))
+        # ── 日常 ──
+        for label, slot in [("🍔 喂食", self._on_feed),
+                             ("📖 学习", self._on_study),
+                             ("💤 睡觉", self._on_sleep),
+                             ("🌅 唤醒", self._on_wake)]:
             a = QAction(label, self); a.triggered.connect(slot); menu.addAction(a)
         menu.addSeparator()
-        a_r = QAction("✏️ 改名",    self); a_r.triggered.connect(self._show_rename_dialog); menu.addAction(a_r)
+        # ── 不透明度 ──
+        ow = QWidget(); ow.setAttribute(Qt.WA_TranslucentBackground)
+        ol = QHBoxLayout(ow); ol.setContentsMargins(_p(16), _p(4), _p(16), _p(4))
+        lbl = QLabel("不透明度"); lbl.setStyleSheet(f"color:#8a96b0; font-size:{_f(12)}px; background:transparent;")
+        sld = QSlider(Qt.Horizontal); sld.setRange(20, 100); sld.setValue(self._opacity_pct)
+        sld.setFixedWidth(_p(90)); sld.valueChanged.connect(self._set_opacity)
+        ol.addWidget(lbl); ol.addWidget(sld)
+        wa = QWidgetAction(self); wa.setDefaultWidget(ow); menu.addAction(wa)
+        menu.addSeparator()
+        # ── 互动 ──
+        for label, slot in [("✋ 摸摸头", self._on_pet),
+                             ("🏸 羽毛球", self._on_game),
+                             ("🐱 变猫猫", self._on_cat)]:
+            a = QAction(label, self); a.triggered.connect(slot); menu.addAction(a)
+        menu.addSeparator()
+        # ── 底部 ──
         a_p = QAction("📊 个人中心", self)
         a_p.triggered.connect(self._show_panel)
         menu.addAction(a_p)
-        menu.exec_(global_pos)
+        # ── 弹出位置：避让桌宠，优先出现在宠物右侧 ──
+        msz = menu.sizeHint()
+        scr = QApplication.primaryScreen().availableGeometry()
+        gap = round(-10 * u)
+        pet_r = int(self._pet_x) + PET_SIZE
+        pet_l = int(self._pet_x)
+        mx = pet_r + gap
+        if mx + msz.width() > scr.right():
+            mx = pet_l - gap - msz.width()
+        mx = max(scr.left(), min(mx, scr.right() - msz.width()))
+        my = int(self._pet_y) + PET_SIZE * 2 // 3
+        my = max(scr.top(), min(my, scr.bottom() - msz.height()))
+        menu.exec_(QPoint(mx, my))
 
     def _quit(self):
         self.monitor.stop(); self.state.save(); self.game.save(); self.chat_svc.save_config(); QApplication.quit()

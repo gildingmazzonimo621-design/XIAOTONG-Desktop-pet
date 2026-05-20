@@ -43,10 +43,12 @@ class FrameSequence:
     这样启动时不需要一次性解混淆全部 100MB+ 数据。
     """
     def __init__(self, prefix: str, count: int, size: int,
-                 fps: float = 25.0, loop: bool = True, adir: str | None = None):
+                 fps: float = 25.0, loop: bool = True, adir: str | None = None,
+                 dpr: float = 1.0):
         self._prefix = prefix
         self._count  = max(count, 1)
         self._size   = size
+        self._dpr    = max(1.0, dpr)
         self._fps    = fps
         self._loop   = loop
         self._cache: dict[int, QPixmap] = {}
@@ -106,10 +108,13 @@ class FrameSequence:
             if os.path.exists(path):
                 px = QPixmap(path)
 
-        if not px.isNull() and (px.width() > self._size or px.height() > self._size):
-            px = px.scaled(self._size, self._size,
-                           Qt.KeepAspectRatio,
-                           Qt.SmoothTransformation)
+        if not px.isNull():
+            _ds = max(1, int(self._size * self._dpr))
+            if px.width() > _ds or px.height() > _ds:
+                px = px.scaled(_ds, _ds,
+                               Qt.KeepAspectRatio,
+                               Qt.SmoothTransformation)
+            px.setDevicePixelRatio(self._dpr)
         return px
 
     def __del__(self):
@@ -153,8 +158,13 @@ class SpriteRenderer:
     ONESHOT_ALL    = ONESHOT_FREEZE | ONESHOT_STAY | ONESHOT_RETURN
 
     def __init__(self, size: int = 320):
+        from PyQt5.QtWidgets import QApplication
         self.size  = size
         self._adir = _asset_dir()
+        self._dpr  = 1.0
+        _scr = QApplication.primaryScreen()
+        if _scr:
+            self._dpr = max(1.0, _scr.devicePixelRatio())
         self._seqs: dict[str, FrameSequence] = {}
         self._load_sequences()
 
@@ -193,7 +203,7 @@ class SpriteRenderer:
             self._seqs[name] = FrameSequence(
                 prefix=name, count=info["frames"], size=self.size,
                 fps=info.get("fps", 25.0), loop=info.get("loop", True),
-                adir=adir,
+                adir=adir, dpr=self._dpr,
             )
         # 自动注册 config 中未覆盖的 loop pak（drag / cling）
         for name in ("drag", "cling"):
@@ -205,6 +215,7 @@ class SpriteRenderer:
                         self._seqs[name] = FrameSequence(
                             prefix=name, count=count, size=self.size,
                             fps=25.0, loop=True, adir=self._adir,
+                            dpr=self._dpr,
                         )
 
     def _count_pak_frames(self, pak_path: str) -> int:
@@ -439,7 +450,8 @@ class SpriteRenderer:
         return seq.get(idx) if seq else None
 
     def _blit(self, painter: QPainter, px: QPixmap):
-        painter.drawPixmap(int(-px.width() * .5), int(-px.height()), px)
+        d = px.devicePixelRatio() if px.devicePixelRatio() > 0 else 1.0
+        painter.drawPixmap(int(-px.width() / d * 0.5), int(-px.height() / d), px)
 
     # ------------------------------------------------------------------ #
     #  粒子                                                                 #
