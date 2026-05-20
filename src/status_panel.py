@@ -141,7 +141,7 @@ def _lbl(t="",sz=12,c=T1,bold=False):
     lb.setStyleSheet(f"color:{c};background:transparent;border:none;padding:0;margin:0;"); return lb
 
 def _ibtn(icon,label):
-    b=QPushButton(f"{icon}\n{label}"); b.setFixedHeight(_s(52)); b.setFont(QFont("Microsoft YaHei", _fs(9)))
+    b=QPushButton(f"{icon}\n{label}"); b.setFixedHeight(_s(60)); b.setFont(QFont("Microsoft YaHei", _fs(9)))
     b.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
     b.setStyleSheet(f"QPushButton{{background:{CARD};color:{T2};border:1.5px solid {BD};border-radius:{_s(10)}px;padding:{_s(4)}px 0;}}"
                     f"QPushButton:hover{{background:{BGB};border-color:{BD2};color:{T1};}}"
@@ -557,13 +557,13 @@ class StatusPanel(QWidget):
     # ════════════════════  任务页  ════════════════════════════
     def _pg_tasks(self):
         L=self._cl
+        L.addWidget(_lbl("📋 每日任务",15,T1,True)); L.addSpacing(_s(4))
         sa=QScrollArea(); sa.setWidgetResizable(True)
         sa.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         sa.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         sa.setStyleSheet(f"QScrollArea{{border:none;background:transparent;}}")
         w=QWidget(); w.setStyleSheet("background:transparent;border:none;")
         sl=QVBoxLayout(w); sl.setContentsMargins(_s(0), _s(2), _s(4), _s(0)); sl.setSpacing(0)
-        sl.addWidget(_lbl("📋 每日任务",13,T1,True))
         if not self._gs:
             sl.addWidget(_lbl("系统未初始化",11,T3)); sl.addStretch()
         else:
@@ -576,8 +576,8 @@ class StatusPanel(QWidget):
                 self._coin.setText(f"💰 {self._gs.coins}")
             tasks = [t for t in tasks if t["id"] != "login"]
             tasks.sort(key=lambda t: 1 if t["done"] else 0)
-            for t in tasks:
-                sl.addStretch(1)
+            for _ti, t in enumerate(tasks):
+                if _ti > 0: sl.addStretch(1)
                 done = t["done"]
                 c=QWidget()
                 if done:
@@ -618,10 +618,10 @@ class StatusPanel(QWidget):
         L = self._cl
         # ── 标题行 ──────────────────────────────────────────
         hdr = QHBoxLayout()
-        hdr.addWidget(_lbl("🎒 背包", 14, T1, True))
+        hdr.addWidget(_lbl("🎒 背包", 15, T1, True))
         hdr.addStretch()
         L.addLayout(hdr)
-        L.addSpacing(_s(10))
+        L.addSpacing(_s(4))
 
         if not self._gs:
             L.addStretch()
@@ -653,10 +653,10 @@ class StatusPanel(QWidget):
             el.addWidget(_lbl("去商店买点好东西吧！", 10, T3))
             sl.addStretch(); sl.addWidget(empty); sl.addStretch()
         else:
+            sl.setSpacing(_s(10))
             for iid, cnt in bp.items():
                 s = SHOP_MAP.get(iid)
                 if not s: continue
-                sl.addStretch(1)
                 usable = self._gs.can_use_item(iid, self._ps)[0] if self._ps else True
                 accent, abg = _ITEM_ACCENT.get(iid, _ITEM_ACCENT_DEFAULT)
                 if not usable:
@@ -708,7 +708,7 @@ class StatusPanel(QWidget):
                     cb.setEnabled(False)
                 rl.addWidget(cb)
                 sl.addWidget(row)
-            sl.addStretch(1)
+            sl.addStretch()
 
         sa.setWidget(sw)
         L.addWidget(sa, 1)
@@ -717,8 +717,8 @@ class StatusPanel(QWidget):
     def _pg_shop(self):
         L = self._cl
         # ── 标题行 ──────────────────────────────────────────
-        L.addWidget(_lbl("🏪 商店", 14, T1, True))
-        L.addSpacing(_s(10))
+        L.addWidget(_lbl("🏪 商店", 15, T1, True))
+        L.addSpacing(_s(4))
 
         if not self._gs:
             L.addStretch()
@@ -731,8 +731,8 @@ class StatusPanel(QWidget):
         sw = QWidget(); sw.setStyleSheet("background:transparent;border:none;")
         sl = QVBoxLayout(sw); sl.setContentsMargins(_s(0), _s(2), _s(4), _s(0)); sl.setSpacing(0)
 
-        for s in self._gs.get_shop_items():
-            sl.addStretch(1)
+        for _si, s in enumerate(self._gs.get_shop_items()):
+            if _si > 0: sl.addStretch(1)
             iid = s["id"]
             accent, abg = _ITEM_ACCENT.get(iid, _ITEM_ACCENT_DEFAULT)
             can_buy = self._gs.coins >= s["price"]
@@ -794,7 +794,7 @@ class StatusPanel(QWidget):
     # ════════════════════  成就页  ════════════════════════════
     def _pg_ach(self):
         L=self._cl
-        L.addWidget(_lbl("🏅 成就",13,T1,True)); L.addSpacing(_s(6))
+        L.addWidget(_lbl("🏅 成就",15,T1,True)); L.addSpacing(_s(4))
         if not self._gs or not self._ps:
             L.addWidget(_lbl("系统未初始化",11,T3)); L.addStretch(); return
         sa=QScrollArea(); sa.setWidgetResizable(True)
@@ -1147,11 +1147,9 @@ class StatusPanel(QWidget):
 
         is_first = self._cs and self._cs.is_first_launch
         title = "首次使用 — 配置 API" if is_first else "API 设置"
-        S.addWidget(_lbl(title,13,T1,True)); S.addSpacing(_s(16))
-
-        if is_first:
-            hint = _lbl("欢迎使用桌宠！请先配置你的 AI 接口信息：",10,"#c4784a")
-            hint.setWordWrap(True); S.addWidget(hint); S.addSpacing(_s(6))
+        S.addStretch(1)
+        S.addWidget(_lbl(title,15,T1,True))
+        S.addStretch(2)
 
         config = self._cs.config if self._cs else {"api_url":"","api_key":"","model":""}
 
@@ -1176,16 +1174,19 @@ class StatusPanel(QWidget):
                 f"QPushButton:hover{{color:#c06060;background:#fde8e8;}}")
             clr.clicked.connect(inp.clear)
             row.addWidget(clr)
-            S.addLayout(row); S.addSpacing(_s(14))
+            S.addLayout(row)
             return inp
 
         url_ph = "首次使用，请输入你的 API 地址" if is_first else "https://api.openai.com/v1 或中转站地址"
         key_ph = "首次使用，请输入你的 API Key" if is_first else "sk-..."
         self._cfg_url=_input("API 地址", config.get("api_url",""), url_ph)
+        S.addStretch(2)
         self._cfg_key=_input("API Key", config.get("api_key",""), key_ph, is_password=True)
+        S.addStretch(2)
         self._cfg_model=_input("模型名称", config.get("model",""),
                                "gpt-3.5-turbo / deepseek-chat / claude-3.5-sonnet")
-        S.addSpacing(_s(22))
+        S.addStretch(2)
+
         br=QHBoxLayout(); br.setSpacing(_s(10))
         save_btn=QPushButton("保存设置"); save_btn.setFixedHeight(_s(38))
         save_btn.setFont(QFont("Microsoft YaHei", _fs(11),QFont.Bold))
@@ -1204,13 +1205,15 @@ class StatusPanel(QWidget):
         br.addWidget(test_btn)
         S.addLayout(br)
 
-        S.addSpacing(_s(16))
+        S.addSpacing(_s(4))
         status = "已配置" if (self._cs and self._cs.enabled) else "未配置"
         self._cfg_status=_lbl(f"当前状态：{status}",10,T2)
         self._cfg_status.setWordWrap(True)
+        S.addStretch(2)
         S.addWidget(self._cfg_status)
+        S.addStretch(2)
 
-        S.addStretch(1); S.addWidget(_div()); S.addSpacing(_s(8))
+        S.addWidget(_div()); S.addStretch(2)
 
         # 记忆管理入口按钮
         mem_btn=QPushButton("📝 记忆管理"); mem_btn.setFixedHeight(_s(42))
@@ -1223,11 +1226,12 @@ class StatusPanel(QWidget):
         S.addWidget(mem_btn)
         if self._cs:
             mi=self._cs.get_memory_info()
-            S.addSpacing(_s(12))
+            S.addStretch(2)
             S.addWidget(_lbl(f"{mi['facts_count']} 条记忆  ·  {mi['recent_count']//2} 轮对话",9,T3))
+            S.addStretch(2)
 
         # ── 赞赏 + 关于（左右两栏）──
-        S.addStretch(1); S.addWidget(_div()); S.addSpacing(_s(8))
+        S.addWidget(_div()); S.addStretch(2)
         footer = QHBoxLayout(); footer.setContentsMargins(_s(10), _s(0), _s(10), _s(0))
 
         # 左栏：赞赏
@@ -1310,7 +1314,7 @@ class StatusPanel(QWidget):
         footer.addLayout(right_col)
 
         S.addLayout(footer)
-        S.addStretch(1)
+        S.addStretch(2)
 
         L.addWidget(wrapper, 1)
 

@@ -436,9 +436,12 @@ class PetWindow(QWidget):
         if _raw.isNull() and os.path.exists(_png_path):
             _raw = QPixmap(_png_path)
         if not _raw.isNull():
+            _dpr = QApplication.primaryScreen().devicePixelRatio()
+            _ds = int(PET_SIZE * _dpr)
             self._idle_noeyes_px = _raw.scaled(
-                PET_SIZE, PET_SIZE, Qt.KeepAspectRatio, Qt.SmoothTransformation
+                _ds, _ds, Qt.KeepAspectRatio, Qt.SmoothTransformation
             )
+            self._idle_noeyes_px.setDevicePixelRatio(_dpr)
         else:
             self._idle_noeyes_px = None
         self._face_scale = PET_SIZE / 1024.0
@@ -1042,7 +1045,8 @@ class PetWindow(QWidget):
         painter.rotate(rot)
         painter.scale(sx, sy)
         if px is not None:
-            painter.drawPixmap(int(-px.width() * 0.5), int(-px.height()), px)
+            _d = px.devicePixelRatio()
+            painter.drawPixmap(int(-px.width() / _d * 0.5), int(-px.height() / _d), px)
 
         self._draw_face(painter, sx, self._face_scale)
         painter.restore()
