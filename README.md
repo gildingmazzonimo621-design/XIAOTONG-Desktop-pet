@@ -1,22 +1,60 @@
-<p align="center">
-  <img src="icons/icon.png" alt="蓝色小嗵" width="120" />
-</p>
+<table>
+  <tr>
+    <td valign="top">
+      <h1>
+        <img src="icons/icon.png" alt="蓝色小嗵" width="80" /><br>
+        蓝色小嗵
+      </h1>
+      <sub>XIAOTONG</sub>
+      <br><br>
+      <b>TA 从森林里来，因为想天天见到你。</b><br>
+      <sub>A spirit from the forest, here to stay by your side.</sub>
+      <br><br>
+      <img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-blue" />
+      <img src="https://img.shields.io/badge/python-3.10%2B-blue" />
+      <img src="https://img.shields.io/badge/license-MIT-green" />
+      <a href="https://github.com/gildingmazzonimo621-design/XIAOTONG-Desktop-pet/releases/latest">
+        <img src="https://img.shields.io/github/v/release/gildingmazzonimo621-design/XIAOTONG-Desktop-pet?label=%E2%AC%87%20download&color=brightgreen" />
+      </a>
+    </td>
+    <td align="center" valign="middle">
+      <img src="docs/eye-follow.gif" width="300" alt="眼睛跟随鼠标" />
+    </td>
+  </tr>
+</table>
 
-<h1 align="center">蓝色小嗵</h1>
-
-<p align="center"><strong>一只住在你桌面上的蓝色小精灵，能聊天、有记忆、会成长。</strong></p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-blue" />
-  <img src="https://img.shields.io/badge/python-3.10%2B-blue" />
-  <img src="https://img.shields.io/badge/license-MIT-green" />
-</p>
-
-<p align="center">
-  <img src="docs/eye-follow.gif" width="300" alt="眼睛跟随鼠标" />
-</p>
-
-<p align="center"><em>TA 的眼睛会实时跟随你的鼠标，你喂 TA、TA 会高兴；你忘了 TA、TA 会饿。</em></p>
+<table>
+  <tr>
+    <td align="center" width="25%">
+      ✨<br>
+      <b>TA 的眼睛会追着你</b><br>
+      <sub>Eye Tracking</sub>
+      <br><br>
+      <sub>实时跟随你的鼠标光标，像是在注视着你</sub>
+    </td>
+    <td align="center" width="25%">
+      🍃<br>
+      <b>能和你说话、记住你</b><br>
+      <sub>Talk & Remember</sub>
+      <br><br>
+      <sub>和 TA 聊天，TA 会记住你们之间发生过的事</sub>
+    </td>
+    <td align="center" width="25%">
+      🌱<br>
+      <b>越陪伴越亲密</b><br>
+      <sub>Growth System</sub>
+      <br><br>
+      <sub>等级、任务、成就、商店，TA 在慢慢成长</sub>
+    </td>
+    <td align="center" width="25%">
+      ☁️<br>
+      <b>趴在窗口陪你工作</b><br>
+      <sub>Window Snap</sub>
+      <br><br>
+      <sub>吸附到你正在用的窗口上方，跟着你走</sub>
+    </td>
+  </tr>
+</table>
 
 ---
 
