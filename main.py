@@ -1098,12 +1098,20 @@ class PetWindow(QWidget):
             ey = by + gy * EYE_SHIFT_Y
             painter.setBrush(QColor(10, 10, 15, 245))
             painter.drawEllipse(QRectF(ex - EYE_R, ey - EYE_R, EYE_R * 2, EYE_R * 2))
-            # 高光
+            # 高光 — 参数全部基于 EYE_R，任意 DPI 下比例恒定
             painter.setBrush(QColor(255, 255, 255, 110))
-            hr = max(1.0, 14.6 * S)
-            hx = ex + 2.5 * S + actual_gx * 3.0 * S
-            hy = ey - 5.0 * S
-            painter.drawEllipse(QRectF(hx, hy, hr, hr))
+            hr = EYE_R * 0.81                                     # 高光直径
+            h_cx = ex + EYE_R * 0.54 + actual_gx * EYE_R * 0.17  # 中心 x
+            h_cy = ey + EYE_R * 0.13                              # 中心 y
+            # 钳位：确保高光圆不超出眼球圆
+            _dx, _dy = h_cx - ex, h_cy - ey
+            _d = (_dx * _dx + _dy * _dy) ** 0.5
+            _lim = EYE_R - hr * 0.5
+            if _d > _lim > 0:
+                _r = _lim / _d
+                h_cx = ex + _dx * _r
+                h_cy = ey + _dy * _r
+            painter.drawEllipse(QRectF(h_cx - hr * 0.5, h_cy - hr * 0.5, hr, hr))
 
         # ── 嘴巴（1.2×） ────────────────────────────────────────────
         MOUTH_SHIFT_X = 5.0 * S
