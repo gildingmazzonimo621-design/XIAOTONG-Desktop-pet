@@ -1032,11 +1032,10 @@ class PetWindow(QWidget):
 
     # ── idle 状态：无眼底图 + 动态表情绘制 ─────────────────────────
     def _draw_idle_with_eyes(self, painter: QPainter, cx: float, cy: float, transform: dict):
-        import math as _m
         tr  = transform
         sx  = tr.get("scale_x",  1.0)
         sy  = tr.get("scale_y",  1.0)
-        rot = _m.degrees(tr.get("rotation", 0.0))
+        rot = math.degrees(tr.get("rotation", 0.0))
         oy  = tr.get("offset_y", 0.0)
 
         px   = self._idle_noeyes_px
@@ -1057,11 +1056,10 @@ class PetWindow(QWidget):
 
     def _draw_eyes_overlay(self, painter: QPainter, cx: float, cy: float, transform: dict):
         """当无眼底图缺失时，在已绘制的 idle 帧上叠加动态眼睛（坐标系独立 save/restore）"""
-        import math as _m
         tr  = transform
         sx  = tr.get("scale_x",  1.0)
         sy  = tr.get("scale_y",  1.0)
-        rot = _m.degrees(tr.get("rotation", 0.0))
+        rot = math.degrees(tr.get("rotation", 0.0))
         oy  = tr.get("offset_y", 0.0)
         size = self.renderer.size if hasattr(self.renderer, 'size') else PET_SIZE
 

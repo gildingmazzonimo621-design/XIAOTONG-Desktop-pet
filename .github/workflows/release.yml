@@ -1,0 +1,41 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install PyQt5 pynput pyinstaller
+
+      - name: Build EXE
+        run: python -m PyInstaller tools/build_onefile.spec --noconfirm
+
+      - name: Verify build output
+        run: |
+          if (!(Test-Path "dist/xiaotong.exe")) { Write-Error "Build failed: xiaotong.exe not found"; exit 1 }
+          $size = (Get-Item "dist/xiaotong.exe").Length / 1MB
+          Write-Host "Build successful: xiaotong.exe ($([math]::Round($size, 1)) MB)"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: 蓝色小嗵 ${{ github.ref_name }}
+          files: dist/xiaotong.exe
+          generate_release_notes: true
