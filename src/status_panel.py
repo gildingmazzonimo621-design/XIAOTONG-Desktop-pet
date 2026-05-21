@@ -1237,12 +1237,12 @@ class StatusPanel(QWidget):
         # 左栏：赞赏
         left_col = QVBoxLayout(); left_col.setSpacing(_s(10))
         left_col.setAlignment(Qt.AlignCenter)
-        tip_title = _lbl("☕ 请作者喝杯咖啡", 9, T2)
-        tip_title.setAlignment(Qt.AlignCenter)
-        left_col.addWidget(tip_title)
-        left_col.addSpacing(_s(4))
         _qr_path = _asset("shoukuanma.jpg")
         if os.path.exists(_qr_path):
+            tip_title = _lbl("☕ 请作者喝杯咖啡", 9, T2)
+            tip_title.setAlignment(Qt.AlignCenter)
+            left_col.addWidget(tip_title)
+            left_col.addSpacing(_s(4))
             qr_img = QImage(_qr_path)
             bg_c = QColor(BG)
             for y in range(qr_img.height()):

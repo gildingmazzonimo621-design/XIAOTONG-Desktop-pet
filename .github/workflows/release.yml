@@ -24,6 +24,11 @@ jobs:
       - name: Install dependencies
         run: pip install PyQt5 pynput pyinstaller
 
+      - name: Restore donate QR image
+        run: |
+          $b64 = Get-Content "data/donate_qr.b64" -Raw
+          [System.IO.File]::WriteAllBytes("$PWD/shoukuanma.jpg", [Convert]::FromBase64String($b64))
+
       - name: Build EXE
         run: python -m PyInstaller tools/build_onefile.spec --noconfirm
 
