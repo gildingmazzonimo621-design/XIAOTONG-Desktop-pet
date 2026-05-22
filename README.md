@@ -14,7 +14,7 @@
       <img src="https://img.shields.io/badge/python-3.10%2B-blue" />
       <img src="https://img.shields.io/badge/license-Apache--2.0%20%2B%20Additional%20Terms-green" />
       <a href="https://github.com/gildingmazzonimo621-design/XIAOTONG-Desktop-pet/releases/latest">
-        <img src="https://img.shields.io/github/v/release/gildingmazzonimo621-design/XIAOTONG-Desktop-pet?label=%E2%AC%87%20download&color=brightgreen" />
+        <img src="https://img.shields.io/github/v/release/gildingmazzonimo621-design/XIAOTONG-Desktop-pet?label=%E2%AC%87%20download&color=brightgreen&cacheSeconds=3600" />
       </a>
     </td>
     <td align="center" valign="middle">
