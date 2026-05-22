@@ -1,30 +1,106 @@
-MIT License with No-Sale Restriction
+XIAOTONG Desktop Pet License
+Version 1.0, May 2026
 
-Copyright (c) 2026 蓝色小嗵
+Copyright (c) 2026 蓝色小嗵 (Blue Xiaotong)
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to use,
-copy, modify, merge, publish, and distribute copies of the Software, subject
-to the following conditions:
+DEFINITIONS
 
-1. The above copyright notice and this permission notice shall be included in
-   all copies or substantial portions of the Software. Any modified or
-   derivative work must clearly attribute the original project and provide
-   a link to the original repository.
+"License" means this document.
 
-2. The Software, whether in its original form or modified, may NOT be sold,
-   sublicensed, or otherwise offered as a paid product or service. Commercial
-   collaboration requires prior written consent from the copyright holder.
+"Licensor" means the copyright holder identified above.
 
-3. The "About" section of the Software — including but not limited to the
-   author attribution, version information, donation QR code, and contact
-   details — must be preserved in its entirety and may NOT be modified,
-   removed, or obscured in any copy or derivative work.
+"Software" means the source code, object code, documentation, assets,
+and associated files made available under this License.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+"Derivative Work" means any work that is based on or derived from the
+Software, including but not limited to modifications, translations,
+adaptations, and works that incorporate the Software in whole or in part.
+
+"Contribution" means any work of authorship submitted to the Licensor
+for inclusion in the Software, including modifications or additions.
+
+"Contributor" means the Licensor and any person or entity that submits
+a Contribution.
+
+GRANT OF COPYRIGHT LICENSE
+
+Subject to the terms and conditions of this License, each Contributor
+hereby grants you a perpetual, worldwide, non-exclusive, royalty-free
+copyright license to use, copy, modify, merge, publish, and distribute
+the Software and Derivative Works thereof, subject to the restrictions
+stated below.
+
+GRANT OF PATENT LICENSE
+
+Subject to the terms and conditions of this License, each Contributor
+hereby grants you a perpetual, worldwide, non-exclusive, royalty-free
+patent license to make, have made, use, and otherwise transfer the
+Software, where such license applies only to those patent claims
+licensable by such Contributor that are necessarily infringed by their
+Contribution(s) alone or by combination of their Contribution(s) with
+the Software. If you institute patent litigation against any entity
+(including a cross-claim or counterclaim in a lawsuit) alleging that
+the Software constitutes patent infringement, then any patent licenses
+granted to you under this License shall terminate as of the date such
+litigation is filed.
+
+RESTRICTIONS
+
+The following restrictions apply to the Software and all Derivative
+Works. Violation of any restriction automatically terminates your
+rights under this License.
+
+1. Attribution and Link-Back
+
+   You must retain the above copyright notice in all copies or
+   substantial portions of the Software. Any Derivative Work must
+   clearly and prominently attribute the original project by name
+   and provide a direct hyperlink to the original repository:
+
+       https://github.com/gildingmazzonimo621-design/XIAOTONG-Desktop-pet
+
+2. No Unauthorized Commercial Use
+
+   You may NOT sell, sublicense, rent, lease, or otherwise offer the
+   Software or any Derivative Work — whether in original, modified,
+   compiled, or repackaged form — as a paid product, paid service,
+   or component of any paid offering, unless you have obtained prior
+   written consent from the Licensor.
+
+   This includes but is not limited to: listing on app stores for a
+   price, bundling with paid software, offering as a paid download,
+   or charging for access in any form.
+
+   The Licensor welcomes commercial collaboration inquiries from
+   individuals and organizations. All commercial use, sponsorship
+   arrangements, or revenue-generating activities require contacting
+   the Licensor in advance and obtaining explicit written permission.
+   Contact information is available in the project README.
+
+3. Preservation of About Section
+
+   The "About" section of the Software — including but not limited to
+   the author attribution, version information, donation QR code, and
+   contact details — must be preserved in its entirety and may NOT be
+   modified, removed, obscured, or made less accessible in any copy
+   or Derivative Work.
+
+DISCLAIMER OF WARRANTY
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+LIMITATION OF LIABILITY
+
+IN NO EVENT SHALL THE AUTHORS, COPYRIGHT HOLDERS, OR CONTRIBUTORS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+TERMINATION
+
+Your rights under this License terminate automatically if you fail to
+comply with any of its terms. Upon termination, you must cease all use
+and distribution of the Software and destroy all copies in your
+possession.

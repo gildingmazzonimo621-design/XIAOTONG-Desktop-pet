@@ -12,7 +12,7 @@
       <br><br>
       <img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-blue" />
       <img src="https://img.shields.io/badge/python-3.10%2B-blue" />
-      <img src="https://img.shields.io/badge/license-MIT%20No--Sale-green" />
+      <img src="https://img.shields.io/badge/license-XIAOTONG--License--v1.0-green" />
       <a href="https://github.com/gildingmazzonimo621-design/XIAOTONG-Desktop-pet/releases/latest">
         <img src="https://img.shields.io/github/v/release/gildingmazzonimo621-design/XIAOTONG-Desktop-pet?label=%E2%AC%87%20download&color=brightgreen" />
       </a>
@@ -336,3 +336,28 @@ geren/
 
 我很喜欢这个意象，所以把 TA 变成了一只住在桌面上的小精灵——TA 从森林里来，带着那声「嗵」，留在你身边。
 <br><sub>I loved this imagery, so I turned it into a little spirit living on your desktop — TA came from the forest, carrying that sound of "tong", and stayed by your side.</sub>
+
+---
+
+## 📬 联系我 · Contact
+
+如果你有任何想法、建议，或希望进行商业合作，欢迎通过微信联系我：
+<br><sub>If you have ideas, suggestions, or want to discuss commercial collaboration, feel free to reach me on WeChat:</sub>
+
+**微信 / WeChat**：`xy12981118`（添加时请备注来意 / Please include a note about your purpose when adding）
+
+---
+
+## 📜 开源协议 · License
+
+本项目采用 [XIAOTONG Desktop Pet License v1.0](LICENSE)，基于以下核心规则：
+<br><sub>This project is licensed under the [XIAOTONG Desktop Pet License v1.0](LICENSE), with the following core rules:</sub>
+
+- ✅ 自由使用、修改和分发，但需**署名并链接回原仓库**
+  <br><sub>Free to use, modify, and distribute — with attribution and link-back required</sub>
+- ❌ 未经授权**不得售卖或用于任何付费产品/服务**
+  <br><sub>No selling or paid offerings without prior written consent</sub>
+- 🔒 **「关于」区域不可修改或移除**
+  <br><sub>The "About" section must not be modified or removed</sub>
+- 🤝 **欢迎商业合作洽谈**，请先通过上方微信联系作者
+  <br><sub>Commercial collaboration is welcome — please contact the author via WeChat above</sub>
