@@ -58,6 +58,19 @@
 
 ---
 
+## 🌿 为什么做这只桌宠 · Why This Project
+
+蓝色小嗵的形象来源于唱作组合 DOUDOU（杜冰儿、杜飞儿）的歌曲《嗵嗵》。
+<br><sub>XIAOTONG is inspired by the song "Tong Tong" from singer-songwriter duo DOUDOU (Du Bing'er & Du Fei'er).</sub>
+
+「嗵」是森林里果实落地的声响，也是生命轮转、生生不息的回响。这首歌讲的不是告别，而是每一次落下都意味着重新开始。
+<br><sub>"Tong" is the sound of fruit falling in the forest — an echo of life's endless cycle. The song isn't about farewell; every fall marks a new beginning.</sub>
+
+我很喜欢这个意象，所以把 TA 变成了一只住在桌面上的小精灵——TA 从森林里来，带着那声「嗵」，留在你身边。
+<br><sub>I loved this imagery, so I turned it into a little spirit living on your desktop — TA came from the forest, carrying that sound of "tong", and stayed by your side.</sub>
+
+---
+
 ## 🎮 开箱即玩 · 无需任何配置
 <sub>Ready to Play · Zero Configuration</sub>
 
@@ -323,19 +336,6 @@ geren/
 | **Win32 API (ctypes)** | 窗口枚举、DPI 感知、单实例互斥锁 | Window enumeration, DPI awareness, single-instance mutex |
 | **urllib / ssl** | HTTP 请求，零第三方网络依赖 | HTTP requests, zero third-party network deps |
 | **PyInstaller** | 打包为 EXE，内嵌 DPI 清单 | Bundle as EXE with embedded DPI manifest |
-
----
-
-## 🌿 为什么做这只桌宠 · Why This Project
-
-蓝色小嗵的形象来源于唱作组合 DOUDOU（杜冰儿、杜飞儿）的歌曲《嗵嗵》。
-<br><sub>XIAOTONG is inspired by the song "Tong Tong" from singer-songwriter duo DOUDOU (Du Bing'er & Du Fei'er).</sub>
-
-「嗵」是森林里果实落地的声响，也是生命轮转、生生不息的回响。这首歌讲的不是告别，而是每一次落下都意味着重新开始。
-<br><sub>"Tong" is the sound of fruit falling in the forest — an echo of life's endless cycle. The song isn't about farewell; every fall marks a new beginning.</sub>
-
-我很喜欢这个意象，所以把 TA 变成了一只住在桌面上的小精灵——TA 从森林里来，带着那声「嗵」，留在你身边。
-<br><sub>I loved this imagery, so I turned it into a little spirit living on your desktop — TA came from the forest, carrying that sound of "tong", and stayed by your side.</sub>
 
 ---
 
