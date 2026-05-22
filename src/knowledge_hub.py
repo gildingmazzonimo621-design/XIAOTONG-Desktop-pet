@@ -1373,9 +1373,12 @@ class KnowledgeHub(QWidget):
             name.setStyleSheet(f"color:{T1};background:transparent;border:none;"
                                f"font-weight:bold;padding:0;margin:0;")
             il.addWidget(name)
-            path_text = doc.get("path", "")
-            if len(path_text) > 40:
-                path_text = "..." + path_text[-37:]
+            if is_default:
+                path_text = "专属小嗵的角色设定"
+            else:
+                path_text = doc.get("path", "")
+                if len(path_text) > 40:
+                    path_text = "..." + path_text[-37:]
             path_lbl = _lbl(path_text, 9, T3)
             path_lbl.setWordWrap(False)
             il.addWidget(path_lbl)
