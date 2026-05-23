@@ -540,6 +540,7 @@ class PetWindow(QWidget):
         self.panel.study_clicked.connect(self._on_study)
         self.panel.rename_requested.connect(self._on_rename)
         self.panel.item_used.connect(self._on_item_used)
+        self.panel.action_bubble.connect(self._on_action_bubble)
 
         self._setup_tray()
 
@@ -574,7 +575,7 @@ class PetWindow(QWidget):
         if not self._dragging and not self.state.is_sleeping and not self._is_snapped:
             self._click_anim_timer = 0.35
             if random.random() < 0.18:
-                self._say(_pick("clicking"))
+                self._say(_pick("clicking"), trigger_anim=False)
 
     def _on_mouse_global_release(self, btn: str):
         self.input_state.on_mouse_release(btn)
@@ -605,9 +606,9 @@ class PetWindow(QWidget):
         # 偶尔说话
         spd = self.input_state.typing_speed
         if spd > 10 and random.random() < 0.08:
-            self._say(_pick("typing_intense"), mood="happy")
+            self._say(_pick("typing_intense"), mood="happy", trigger_anim=False)
         elif spd > 5 and random.random() < 0.04:
-            self._say(_pick("typing"), mood="normal")
+            self._say(_pick("typing"), mood="normal", trigger_anim=False)
 
     def _on_input_idle(self):
         if self.state.is_sleeping or self._dragging or self._is_snapped:
@@ -820,7 +821,7 @@ class PetWindow(QWidget):
         self._land_squash = 0.55
         self._land_squash_timer = 0.8
         self.state.current_action = PetAction.IDLE
-        self._say(_pick("land"))
+        self._say(_pick("land"), trigger_anim=False)
 
     def _tick_land_squash(self, dt: float):
         if self._land_squash_timer > 0:
@@ -1165,7 +1166,7 @@ class PetWindow(QWidget):
                 # 立即打断随机动画，切换到 drag 动画（道具动画播放中不打断）
                 if not self._item_playing:
                     self.renderer.switch_loop("drag")
-                self._say(_pick("drag"))
+                self._say(_pick("drag"), trigger_anim=False)
                 self.setCursor(QCursor(Qt.ClosedHandCursor))
         elif event.button() == Qt.RightButton:
             self._show_context_menu(event.globalPos())
@@ -1194,7 +1195,7 @@ class PetWindow(QWidget):
                 self.state.current_action = PetAction.DRAG
                 if not self._item_playing:
                     self.renderer.switch_loop("drag")
-                self._say(_pick("drag"))
+                self._say(_pick("drag"), trigger_anim=False)
                 self.setCursor(QCursor(Qt.ClosedHandCursor))
             return
 
@@ -1257,13 +1258,13 @@ class PetWindow(QWidget):
                 self._snap_target_type = snap.edge_type
                 self._snap_target_hwnd = snap.hwnd
                 self.state.current_action = PetAction.CLING
-                self._say(_pick("cling"))
+                self._say(_pick("cling"), trigger_anim=False)
             elif speed > self._THROW_MIN:
                 self._is_thrown  = True
                 self._throw_vx   = vx * 0.7
                 self._throw_vy   = vy * 0.7
                 self.state.current_action = PetAction.FALL
-                self._say(_pick("throw"))
+                self._say(_pick("throw"), trigger_anim=False)
             else:
                 ground = float(screen.height() - PET_SIZE - 40)
                 if self._pet_y < ground - 10:
@@ -1346,7 +1347,7 @@ class PetWindow(QWidget):
         self.renderer.trigger_priority("eat")
         self._reset_walk_timer()
         self.game.record_action("feed")
-        self._say(msg or _pick("pet"), mood=_mood_to_str(self.state.current_mood))
+        self._say(msg or _pick("pet"), mood=_mood_to_str(self.state.current_mood), trigger_anim=False)
         self.panel.notify_action("feed")
 
     def _on_pet(self):
@@ -1358,7 +1359,7 @@ class PetWindow(QWidget):
         self.renderer.trigger_priority("pet")
         self._reset_walk_timer()
         self.game.record_action("pet")
-        self._say(msg or _pick("pet"), mood=_mood_to_str(self.state.current_mood))
+        self._say(msg or _pick("pet"), mood=_mood_to_str(self.state.current_mood), trigger_anim=False)
         self.panel.notify_action("pet")
 
     def _on_game(self):
@@ -1369,7 +1370,7 @@ class PetWindow(QWidget):
         self.renderer.trigger_priority("play")
         self._reset_walk_timer()
         self.game.record_action("play")
-        self._say(_pick("game"), mood="happy")
+        self._say(_pick("game"), mood="happy", trigger_anim=False)
         self.panel.notify_action("play")
 
     def _on_sleep(self):
@@ -1379,7 +1380,7 @@ class PetWindow(QWidget):
         msg = self.state.sleep()
         self.renderer.trigger_priority("sleep")
         self._reset_walk_timer()
-        self._say(msg, mood="sleepy")
+        self._say(msg, mood="sleepy", trigger_anim=False)
         self.game.record_action("sleep")
         self.panel.notify_action("sleep")
 
@@ -1390,7 +1391,7 @@ class PetWindow(QWidget):
         self.renderer.trigger("wake")
         msg = self.state.wake_up()
         self._reset_walk_timer()
-        self._say(msg, mood="happy")
+        self._say(msg, mood="happy", trigger_anim=False)
 
     def _on_cat(self):
         if self.state.is_sleeping:
@@ -1401,7 +1402,7 @@ class PetWindow(QWidget):
         self._reset_walk_timer()
         self.game.record_action("cat")
         self.state.happiness = min(100, self.state.happiness + 8)
-        self._say(_pick("cat"), mood="happy")
+        self._say(_pick("cat"), mood="happy", trigger_anim=False)
         self.panel.notify_action("cat")
 
     def _on_study(self):
@@ -1415,7 +1416,7 @@ class PetWindow(QWidget):
         self.state.total_study_times += 1
         self.state.energy = max(0, self.state.energy - 5)
         self.state.exp += 5
-        self._say(_pick("study"), mood="normal")
+        self._say(_pick("study"), mood="normal", trigger_anim=False)
         self.panel.notify_action("study")
 
     def _on_item_used(self, item_id: str, msg: str):
@@ -1461,9 +1462,17 @@ class PetWindow(QWidget):
         self._tray.setToolTip(f"{new_name}  右键查看菜单")
         self._say(f"以后就叫我 {new_name} 吧！", mood="happy")
 
+    def _on_action_bubble(self, reply: str):
+        """用户执行动作后，AI 的后续回复通过桌宠气泡展示"""
+        self._say(reply, mood="happy")
+
     def _tick_dialogue(self, dt: float):
         # 道具动画播放 / 拖拽 / 吸附期间暂停自动对话
         if self._item_playing or self._dragging or self._is_snapped:
+            return
+        # 期待动作期间（5 分钟内）暂停自动对话，避免随机动画干扰用户执行动作
+        _pa = getattr(self.panel, '_pending_action', None)
+        if _pa is not None and (time.time() - getattr(self.panel, '_pending_action_ts', 0)) < 300:
             return
         self._dialogue_timer -= dt
         if self._dialogue_timer <= 0:
@@ -1537,7 +1546,7 @@ class PetWindow(QWidget):
             category = _time_slot()
         self._say(_pick(category), mood=_mood_to_str(self.state.current_mood))
 
-    def _say(self, text: str, mood: str = "normal"):
+    def _say(self, text: str, mood: str = "normal", trigger_anim: bool = True):
         # NOTE: 睡觉状态下不弹出任何文字气泡，保持安静沉浸感
         if self.state.is_sleeping:
             return
@@ -1547,23 +1556,32 @@ class PetWindow(QWidget):
         self.bubble.show_message(text, duration=3200, mood=mood)
         # NOTE: 根据气泡文字关键词触发对应动画，增强拟人感。
         # renderer 的 ONESHOT_RETURN 动作播完后会自动回 idle，无需手动还原。
-        self._try_trigger_by_text(text)
+        # trigger_anim=False 时跳过：调用方已触发专属动画，避免重复/冲突。
+        if trigger_anim:
+            self._try_trigger_by_text(text)
 
     # ── 关键词 → 动画映射 ─────────────────────────────────────────────
     # 格式: (关键词列表, 渲染器动作名)，按优先级从高到低排列。
-    # NOTE: 各动作关键词数量控制在 10~13 个，移除"打""玩""跑""跳"等
-    # 过于通用的单字，避免误触发导致某个动作概率过高。
+    # NOTE: 所有关键词至少 2 字，避免单字子串匹配导致误触发。
+    # 仅对 trigger_anim=True 的调用生效（自动对话、AI 回复等），
+    # 互动按钮触发的 _say 已传入 trigger_anim=False 跳过匹配。
     _KEYWORD_ANIM: list[tuple[tuple[str, ...], str]] = [
-        (("喂", "吃", "饿", "早饭", "午饭", "晚饭", "早餐", "午餐", "晚餐",
-          "零食", "蛋糕", "饺子", "咖啡"), "eat"),
-        (("羽毛球", "打球", "运动", "游戏", "玩耍", "活动",
-          "锻炼", "竞技", "比赛", "踢球"), "play"),
-        (("摸", "抱", "贴", "蹭", "亲", "喜欢", "棒棒",
-          "好孩子", "乖", "可爱", "舒服", "温暖"), "pet"),
-        (("喵", "猫", "爪", "呼噜", "毛茸", "胡须",
-          "猫咪", "猫猫", "小猫", "猫粮"), "cat"),
-        (("学习", "读书", "看书", "知识", "作业", "考试", "上课",
-          "复习", "预习", "研究"), "study"),
+        # eat — 饮食相关
+        (("喂食", "喂我", "吃饭", "吃东西", "好饿", "肚子饿", "饿了",
+          "早饭", "午饭", "晚饭", "早餐", "午餐", "晚餐",
+          "零食", "蛋糕", "饺子", "咖啡", "好吃"), "eat"),
+        # play — 运动/游戏
+        (("羽毛球", "打球", "运动", "玩游戏", "玩耍",
+          "锻炼", "竞技", "比赛", "踢球", "打一局"), "play"),
+        # pet — 亲密互动
+        (("摸摸", "摸头", "抱抱", "贴贴", "蹭蹭", "亲亲",
+          "喜欢你", "最喜欢", "好孩子", "真乖", "好可爱", "好舒服"), "pet"),
+        # cat — 猫咪
+        (("喵喵", "猫咪", "猫猫", "小猫", "学猫", "猫叫",
+          "猫粮", "呼噜呼噜", "毛茸茸"), "cat"),
+        # study — 学习
+        (("学习", "读书", "看书", "写作业", "做作业", "考试",
+          "上课", "复习", "预习", "研究"), "study"),
     ]
 
     def _try_trigger_by_text(self, text: str):

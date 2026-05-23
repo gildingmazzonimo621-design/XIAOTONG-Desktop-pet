@@ -327,19 +327,22 @@ class StatusPanel(QWidget):
     _chat_reply_signal=pyqtSignal(str, str)  # reply, error
     _test_result_signal=pyqtSignal(str)    # status text
     _action_reply_signal=pyqtSignal(str, str)  # reply, error (动作触发的 AI 回复)
+    action_bubble=pyqtSignal(str)               # 动作回复文本，发给桌宠气泡展示
 
     _BASE_PW = 430
     _BASE_PH = 820
     _DESIGN_H = 1440   # 设计基准：2560×1440 @ 100% DPI
 
     # ── 聊天内容 → 期待动作 关键词映射 ──
+    # NOTE: 所有关键词至少 2 字，避免单字子串误触发导致 pending_action 被错误设置。
     _ACTION_KEYWORDS: dict[str, list[str]] = {
-        "feed":  ["饿", "饥", "吃", "食", "汉堡", "零食", "喂", "投喂", "美食", "大餐", "点心", "蛋糕", "苹果", "糖果"],
-        "pet":   ["摸", "抱", "拍", "蹭", "亲", "抚摸", "头"],
-        "cat":   ["猫", "喵", "猫咪", "小猫", "猫猫", "变猫", "学猫"],
-        "play":  ["玩", "球", "游戏", "运动", "羽毛球", "无聊", "陪我"],
-        "sleep": ["困", "睡", "累", "休息", "打盹", "瞌睡", "眯一会"],
-        "study": ["学", "看书", "读书", "复习", "写作业", "功课", "知识"],
+        "feed":  ["好饿", "肚子饿", "饿了", "吃饭", "吃东西", "喂食", "喂我", "投喂",
+                  "零食", "蛋糕", "点心", "汉堡", "苹果", "糖果", "美食", "大餐"],
+        "pet":   ["摸摸", "摸头", "抱抱", "蹭蹭", "亲亲", "抚摸", "撸一撸"],
+        "cat":   ["猫咪", "猫猫", "小猫", "变猫", "学猫", "喵喵", "猫叫"],
+        "play":  ["打球", "羽毛球", "玩游戏", "玩耍", "运动", "陪我玩", "打一局"],
+        "sleep": ["困了", "好困", "睡觉", "休息", "打盹", "瞌睡", "眯一会", "好累", "累了"],
+        "study": ["学习", "看书", "读书", "复习", "写作业", "做作业", "功课"],
     }
     # 动作 → 注入给 AI 的上下文描述
     _ACTION_NOTIFY: dict[str, str] = {
@@ -1094,9 +1097,10 @@ class StatusPanel(QWidget):
             self._refresh_chat_view()
 
     def _detect_pending_action(self, reply: str):
-        """扫描 AI 回复，如果提到某个动作相关的关键词，记录为期待动作"""
+        """扫描 AI 回复，如果提到某个动作相关的关键词，记录为期待动作。
+        无匹配时不重置，保留之前已设置的 pending_action。
+        """
         import time as _time
-        self._pending_action = None
         for action, keywords in self._ACTION_KEYWORDS.items():
             if any(kw in reply for kw in keywords):
                 self._pending_action = action
@@ -1130,6 +1134,8 @@ class StatusPanel(QWidget):
         """信号槽：处理动作触发的 AI 后续回复"""
         if error or not reply:
             return
+        # 通过桌宠气泡展示 AI 对动作的回应
+        self.action_bubble.emit(reply)
         # 无论当前在哪个 tab，都刷新聊天记录（回复已保存在 memory 中）
         if hasattr(self, '_chat_layout') and self._tab == "chat":
             self._refresh_chat_view()

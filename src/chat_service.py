@@ -240,6 +240,13 @@ class ChatService:
             "如果主人问到网站或工具，可以在回复里附上完整的 https:// 网址方便点击。"
         )
 
+        # 使用记忆中用户指定的称呼，未指定时默认称呼「主人」
+        nickname = self.get_user_nickname()
+        if nickname != "主人":
+            lines.append(f"主人希望你称呼他/她为「{nickname}」，对话中请使用这个称呼。")
+        else:
+            lines.append("你称呼用户为「主人」。")
+
         if self._memory.get("summary"):
             lines.append(f"\n关于主人的记忆摘要：{self._memory['summary']}")
 
