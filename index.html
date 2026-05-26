@@ -981,7 +981,8 @@ body.loaded .hc>*:nth-child(6){animation-delay:.42s}
   .feat-sec{padding:40px 0 80px}
   .story-mark{font-size:4rem}
   body{cursor:auto}
-  .fairy,.sparkle,.orbs,.particles,.glow-follow,.leaves{display:none!important}
+  /* NOTE: .particles 和 .leaves 保留显示，手机端也需要视觉粒子效果 */
+  .fairy,.sparkle,.orbs,.glow-follow{display:none!important}
 }
 @media(prefers-reduced-motion:reduce){
   .LS{display:none!important}
@@ -1305,6 +1306,7 @@ body.loaded .hc>*:nth-child(6){animation-delay:.42s}
   var isMobile = window.innerWidth < 541;
 
   /* ── Fairy Cursor ──────────────────────── */
+  /* 桌面端：仙女光标 + 鼠标星光 */
   if(!isMobile){
     var fairy = document.getElementById('fairy');
     var fx=-100, fy=-100, mx=-100, my=-100;
@@ -1313,7 +1315,6 @@ body.loaded .hc>*:nth-child(6){animation-delay:.42s}
 
     document.addEventListener('mousemove', function(e){
       mx = e.clientX; my = e.clientY;
-      /* spawn sparkles more frequently, allow more on screen */
       if(Math.random()>.45 && sparkleCount < 30){
         var s = document.createElement('div');
         s.className = 'sparkle';
@@ -1326,24 +1327,6 @@ body.loaded .hc>*:nth-child(6){animation-delay:.42s}
       }
     });
 
-    /* ── Click Ripple — 三圈水波纹扩散 ──────────────── */
-    document.addEventListener('click', function(e){
-      /* NOTE: e.button===0 确保只响应左键点击 */
-      if(e.button !== 0) return;
-      var cx = e.clientX, cy = e.clientY;
-      /* 三圈依次延迟初始，内金 → 中绿 → 外黄绿 */
-      ['','rr2','rr3'].forEach(function(cls, i){
-        setTimeout(function(){
-          var r = document.createElement('div');
-          r.className = 'click-ripple' + (cls ? ' '+cls : '');
-          r.style.left = cx + 'px';
-          r.style.top  = cy + 'px';
-          document.body.appendChild(r);
-          r.addEventListener('animationend', function(){ r.remove(); });
-        }, i * 70);
-      });
-    });
-
     (function animateFairy(){
       fx = lerp(fx, mx, 0.55);
       fy = lerp(fy, my, 0.55);
@@ -1351,6 +1334,33 @@ body.loaded .hc>*:nth-child(6){animation-delay:.42s}
       raf(animateFairy);
     })();
   }
+
+  /* ── Click / Touch Ripple — 全端三圈水波纹 ── */
+  /* NOTE: 桌面用 click，手机用 touchstart，两者都触发水波纹 */
+  function spawnRipple(cx, cy){
+    ['','rr2','rr3'].forEach(function(cls, i){
+      setTimeout(function(){
+        var r = document.createElement('div');
+        r.className = 'click-ripple' + (cls ? ' '+cls : '');
+        r.style.left = cx + 'px';
+        r.style.top  = cy + 'px';
+        document.body.appendChild(r);
+        r.addEventListener('animationend', function(){ r.remove(); });
+      }, i * 70);
+    });
+  }
+  document.addEventListener('click', function(e){
+    if(e.button !== 0) return;
+    spawnRipple(e.clientX, e.clientY);
+  });
+  /* 触摸端：touchstart 触发，避免与 click 重复用 flag 区分 */
+  var touchRippleFired = false;
+  document.addEventListener('touchstart', function(e){
+    var t = e.touches[0];
+    touchRippleFired = true;
+    spawnRipple(t.clientX, t.clientY);
+    setTimeout(function(){ touchRippleFired = false; }, 500);
+  }, {passive:true});
 
   /* ── Mouse-following Glow + Ambient Orbs ── */
   if(!isMobile){
@@ -1384,8 +1394,9 @@ body.loaded .hc>*:nth-child(6){animation-delay:.42s}
     })();
   }
 
-  /* ── Floating Particles (warm multi-color, sides only) ── */
-  if(!isMobile){
+  /* ── Floating Particles（全端）─────────────────────── */
+  /* NOTE: 手机端减少到15个粒子，避免性能问题；桌面30个 */
+  (function(){
     var pc = document.getElementById('particles');
     var pColors = [
       'rgba(252,211,77,0.55)',   /* Golden Yellow */
@@ -1399,26 +1410,24 @@ body.loaded .hc>*:nth-child(6){animation-delay:.42s}
       'rgba(217,70,239,0.42)',   /* Fuchsia */
       'rgba(192,38,211,0.38)'   /* Light Purple */
     ];
-    for(var i=0;i<30;i++){
+    var count = isMobile ? 15 : 30;
+    for(var i=0;i<count;i++){
       var p = document.createElement('div');
       p.className = 'particle';
-      /* full width — allowed to drift through center gaps */
       var x = Math.random()*100;
       var sz = Math.random()*6+3;
       var c = pColors[Math.floor(Math.random()*pColors.length)];
       var dur = Math.random()*16+10;
       var del = -Math.random()*30;
-      /* drift: ±50px horizontal, ±45px vertical — visible float but stays on sides */
       var px1=(Math.random()-.5)*100, py1=(Math.random()-.5)*90;
       var px2=(Math.random()-.5)*110, py2=(Math.random()-.5)*80;
       var px3=(Math.random()-.5)*90,  py3=(Math.random()-.5)*95;
-      /* scale breathing: pulse between 0.7x and 1.5x */
       var s1 = (.7+Math.random()*.8).toFixed(2);
       var s2 = (.7+Math.random()*.8).toFixed(2);
       p.style.cssText = 'left:'+x+'vw;top:'+Math.random()*100+'vh;width:'+sz+'px;height:'+sz+'px;background:'+c+';box-shadow:0 0 '+(sz*2)+'px '+c+';animation:particleFloat '+dur+'s '+del+'s ease-in-out infinite;--px1:'+px1+'px;--py1:'+py1+'px;--px2:'+px2+'px;--py2:'+py2+'px;--px3:'+px3+'px;--py3:'+py3+'px;--s1:'+s1+';--s2:'+s2;
       pc.appendChild(p);
     }
-  }
+  })();
 
   /* ── 3D Tilt Cards ─────────────────────── */
   if(!isMobile){
