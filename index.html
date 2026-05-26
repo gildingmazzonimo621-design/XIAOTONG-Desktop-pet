@@ -1443,8 +1443,9 @@ body.loaded .hc>*:nth-child(6){animation-delay:.42s}
 
     /* min animation time */
     setTimeout(function(){ animDone = true; tryExit(); }, 2200);
-    /* max wait — don't block forever on slow connections */
-    setTimeout(function(){ preloadDone = true; tryExit(); }, 5000);
+    /* max wait — images are ~1.4MB after WebP conversion,
+       8s is enough even on slower CN connections */
+    setTimeout(function(){ preloadDone = true; tryExit(); }, 8000);
 
   } else {
     document.body.classList.add('loaded');
