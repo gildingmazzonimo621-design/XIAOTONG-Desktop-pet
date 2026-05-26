@@ -788,7 +788,29 @@ body.loaded .hc>*:nth-child(6){animation-delay:.42s}
 }
 
 /* ── Download ────────────────────────────── */
-.dl-sec{padding:100px 0 80px;background:var(--bg);text-align:center}
+.dl-sec{padding:100px 0 80px;background:var(--bg)}
+/* 双栏：左侧下载 + 右侧联系 */
+.dl-inner{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:0;
+  align-items:center;
+  max-width:1000px;
+  margin:0 auto;
+  padding:0 24px;
+}
+.dl-left{
+  text-align:center;
+  padding:0 40px;
+  /* NOTE: 右侧分隔线 */
+  border-right:1px solid rgba(0,0,0,.07);
+}
+.dl-right{
+  padding:0 48px;
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+}
 .dl-t{
   font-family:var(--serif-cn);font-weight:700;
   font-size:clamp(1.6rem,3vw,2.2rem);
@@ -845,6 +867,38 @@ body.loaded .hc>*:nth-child(6){animation-delay:.42s}
   font-size:.82rem;color:var(--text-3);
 }
 .dl-meta span{display:flex;align-items:center;gap:5px}
+/* 联系卡片 */
+.contact-head{
+  display:flex;align-items:center;gap:10px;
+  font-family:var(--serif-cn);font-weight:700;
+  font-size:1.25rem;color:var(--text);
+  padding-bottom:16px;
+  border-bottom:1px solid rgba(0,0,0,.07);
+}
+.contact-head .c-icon{font-size:1.4rem}
+.contact-desc{font-size:.88rem;color:var(--text-2);line-height:1.75}
+.contact-desc-en{font-size:.78rem;color:var(--text-3);line-height:1.6;margin-top:4px;font-style:italic}
+.contact-row{
+  display:flex;align-items:center;gap:10px;
+  font-size:.9rem;font-weight:600;color:var(--text);
+  flex-wrap:wrap;
+}
+.contact-row .c-label{color:var(--text-2);font-weight:400;font-size:.85rem;min-width:80px}
+.contact-tag{
+  display:inline-block;
+  padding:3px 12px;border-radius:20px;
+  background:rgba(94,123,168,.1);
+  color:var(--ocean);font-size:.88rem;font-weight:500;
+  letter-spacing:.02em;
+}
+.contact-note{font-size:.78rem;color:var(--text-3)}
+/* 响应式：小屏堆叠 */
+@media(max-width:680px){
+  .dl-inner{grid-template-columns:1fr;gap:48px}
+  .dl-left{border-right:none;border-bottom:1px solid rgba(0,0,0,.07);padding-bottom:48px}
+  .dl-right{padding:0 24px}
+}
+
 
 /* ── Footer ──────────────────────────────── */
 .footer{
@@ -1169,6 +1223,47 @@ body.loaded .hc>*:nth-child(6){animation-delay:.42s}
 
 <div class="sec-divider"></div>
 
+<!-- ═══ Download + Contact ═══ -->
+<section class="dl-sec" id="download">
+  <div class="dl-inner reveal">
+
+    <!-- 左侧：领养 TA -->
+    <div class="dl-left">
+      <h2 class="dl-t" data-text="领养 TA">领养 TA</h2>
+      <p class="dl-t-en">Adopt XIAOTONG</p>
+      <a class="dl-btn mag-btn" href="/download">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3a1 1 0 011-1z"/><path d="M5 16a1 1 0 100 2h10a1 1 0 100-2H5z"/></svg>
+        下载最新版
+      </a>
+      <div class="dl-meta">
+        <span>Windows 10 / 11</span>
+        <span>无需安装 &middot; No install</span>
+        <span>轻量便携 &middot; Portable</span>
+      </div>
+    </div>
+
+    <!-- 右侧：联系我 -->
+    <div class="dl-right">
+      <div class="contact-head">
+        <span class="c-icon">📬</span>
+        <span>联系我 &middot; Contact</span>
+      </div>
+      <p class="contact-desc">如果你有任何想法、建议，或希望进行商业合作，欢迎通过以下方式联系我：</p>
+      <p class="contact-desc-en">If you have ideas, suggestions, or want to discuss commercial collaboration, feel free to reach me via:</p>
+      <div class="contact-row">
+        <span class="c-label">微信 / WeChat</span>
+        <span class="contact-tag">xy12981118</span>
+        <span class="contact-note">（添加时请备注来意 / Please include a note）</span>
+      </div>
+      <div class="contact-row">
+        <span class="c-label">邮筱 / Email</span>
+        <a class="contact-tag" href="mailto:wdz2779@qq.com" style="text-decoration:none">wdz2779@qq.com</a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
 <!-- ═══ Gallery ═══ -->
 <section class="gallery-sec" id="gallery">
   <div class="container">
@@ -1189,24 +1284,7 @@ body.loaded .hc>*:nth-child(6){animation-delay:.42s}
   </div>
 </section>
 
-<div class="sec-divider"></div>
 
-<!-- ═══ Download ═══ -->
-<section class="dl-sec" id="download">
-  <div class="container reveal">
-    <h2 class="dl-t" data-text="领养 TA">领养 TA</h2>
-    <p class="dl-t-en">Adopt XIAOTONG</p>
-    <a class="dl-btn mag-btn" href="/download">
-      <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a1 1 0 011 1v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3a1 1 0 011-1z"/><path d="M5 16a1 1 0 100 2h10a1 1 0 100-2H5z"/></svg>
-      下载最新版
-    </a>
-    <div class="dl-meta">
-      <span>Windows 10 / 11</span>
-      <span>无需安装 · No install</span>
-      <span>轻量便携 · Portable</span>
-    </div>
-  </div>
-</section>
 
 <footer class="footer">
   <div class="footer-links">
