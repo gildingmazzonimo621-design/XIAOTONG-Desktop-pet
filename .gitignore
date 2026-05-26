@@ -34,3 +34,6 @@ CLAUDE.md
 
 # ── 隐私文件 ──────────────────────────────────────────────
 shoukuanma.jpg
+
+# Local deploy script
+deploy_landing.ps1
