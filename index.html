@@ -175,6 +175,34 @@ body:not(.loaded){position:fixed!important;inset:0!important;overflow:hidden!imp
   to{opacity:0;transform:translateY(-20px) scale(.4)}
 }
 
+/* ── 加载屏歌词 ───────────────────────────── */
+/* NOTE: 四句歌词分布在四个对角区域，依次淡入淡出，填充加载等待时间 */
+.LS-lyric{
+  position:absolute;
+  font-family:'Noto Serif SC',var(--serif-cn),serif;
+  font-size:clamp(.85rem, 2vw, 1.1rem);
+  font-weight:400;
+  letter-spacing:.12em;
+  color:rgba(90,80,70,.55);
+  opacity:0;
+  pointer-events:none;
+  white-space:nowrap;
+  animation:kLSLyric 1.5s ease-in-out forwards;
+}
+/* 四个位置：左上、右下、右上、左下 */
+.LS-lyric--1{top:22%;left:12%;animation-delay:.5s}
+.LS-lyric--2{bottom:26%;right:10%;animation-delay:2s}
+.LS-lyric--3{top:18%;right:8%;animation-delay:3.5s}
+.LS-lyric--4{bottom:20%;left:10%;animation-delay:5s}
+@keyframes kLSLyric{
+  0%{opacity:0;transform:translateY(12px);filter:blur(4px)}
+  27%{opacity:1;transform:translateY(0);filter:blur(0)}
+  73%{opacity:1;transform:translateY(0);filter:blur(0)}
+  100%{opacity:0;transform:translateY(-10px);filter:blur(3px)}
+}
+/* 退出时歌词也跟随淡出 */
+.LS.exit .LS-lyric{animation:kLSLeafExit .35s ease-in both!important}
+
 @keyframes kBloom{
   0%{scale:0;opacity:0}
   60%{scale:1.12;opacity:1}
@@ -1029,6 +1057,11 @@ body.loaded .hc>*:nth-child(6){animation-delay:.42s}
   <div class="LS-leaf" style="left:78%;width:12px;height:12px;background:#f1c40f;animation:kLSLeafC 10s -7s ease-in-out infinite"></div>
   <div class="LS-leaf" style="left:88%;width:5px;height:5px;background:#1abc9c;animation:kLSLeafA 7.5s -3s ease-in-out infinite"></div>
   <div class="LS-leaf" style="left:96%;width:15px;height:15px;background:#e74c3c;animation:kLSLeafB 9s -5s ease-in-out infinite"></div>
+  <!-- 歌词：四季依次淡入淡出，填充加载等待时间 -->
+  <div class="LS-lyric LS-lyric--1">春天　就让这繁花都开遍</div>
+  <div class="LS-lyric LS-lyric--2">夏天　我想你想了千万遍</div>
+  <div class="LS-lyric LS-lyric--3">秋天　当落叶画成一个圈</div>
+  <div class="LS-lyric LS-lyric--4">冬天　就在这冰封一瞬间</div>
 </div>
 
 <!-- Background layers -->
