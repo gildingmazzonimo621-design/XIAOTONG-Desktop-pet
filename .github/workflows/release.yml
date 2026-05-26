@@ -90,20 +90,18 @@ jobs:
           ref: gh-pages
           path: gh-pages-dir
 
-      - name: Update landing page links
+      - name: Update download proxy function link
         run: |
           $version = "${{ env.VERSION }}"
-          $htmlFile = "gh-pages-dir/index.html"
-          if (Test-Path $htmlFile) {
-            $content = Get-Content $htmlFile -Raw
-            # 替换最新版重定向链接或旧的带版本号的链接
-            $pattern = 'https://github.com/weidaozhong/Tongluv/releases/(latest/download/xiaotong\.exe|download/v[\d.]+/xiaotong-v[\d.]+\.exe)'
-            $newUrl = "https://github.com/weidaozhong/Tongluv/releases/download/$version/xiaotong-$version.exe"
-            $content = $content -replace $pattern, $newUrl
-            Set-Content $htmlFile $content -NoNewline
-            Write-Host "Updated landing page links to $newUrl"
+          $jsFile = "gh-pages-dir/functions/download.js"
+          if (Test-Path $jsFile) {
+            $content = Get-Content $jsFile -Raw
+            $content = $content -replace 'releases/download/v[\d.]+/xiaotong-v[\d.]+\.exe', "releases/download/$version/xiaotong-$version.exe"
+            $content = $content -replace 'fileName = "xiaotong-v[\d.]+\.exe"', "fileName = `"xiaotong-$version.exe`""
+            Set-Content $jsFile $content -NoNewline
+            Write-Host "Updated download.js with URL and fileName for $version"
           } else {
-            Write-Error "index.html not found in gh-pages branch"
+            Write-Error "download.js not found in gh-pages branch"
           }
 
       - name: Commit and push landing page updates
@@ -111,11 +109,11 @@ jobs:
           cd gh-pages-dir
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html
+          git add functions/download.js
           $status = git status --porcelain
           if ($status) {
-            git commit -m "chore: auto-update landing page download links for ${{ env.VERSION }}"
+            git commit -m "chore: auto-update download function URL for ${{ env.VERSION }}"
             git push origin gh-pages
           } else {
-            Write-Host "No changes in landing page links"
+            Write-Host "No changes in download function link"
           }
