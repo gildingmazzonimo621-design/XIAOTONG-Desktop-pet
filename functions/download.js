@@ -1,5 +1,5 @@
 export async function onRequest(context) {
-  const downloadUrl = "https://github.com/weidaozhong/Tongluv/releases/download/v1.0.1/xiaotong-v1.0.1.exe";
+  const downloadUrl = "https://github.com/weidaozhong/Tongluv/releases/download/v1.0.1/xiaotong.exe";
   const fileName = "xiaotong-v1.0.1.exe";
   
   try {
