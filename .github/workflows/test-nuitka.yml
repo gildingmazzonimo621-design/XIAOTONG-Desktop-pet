@@ -1,0 +1,100 @@
+name: Test Nuitka Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-nuitka:
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install nuitka PyQt5 pynput ordered-set zstandard
+
+      - name: Restore donate QR image
+        run: |
+          $b64 = Get-Content "data/donate_qr.b64" -Raw
+          [System.IO.File]::WriteAllBytes("$PWD/shoukuanma.jpg", [Convert]::FromBase64String($b64))
+
+      - name: Build with Nuitka (onefile)
+        run: |
+          python -m nuitka `
+            --onefile `
+            --assume-yes-for-downloads `
+            --windows-console-mode=disable `
+            --enable-plugin=pyqt5 `
+            --include-data-dir=assets/animations=assets/animations `
+            --include-data-dir=assets/items=assets/items `
+            --include-data-files=data/default_persona.txt=data/default_persona.txt `
+            --include-data-dir=icons=icons `
+            --include-data-files=shoukuanma.jpg=shoukuanma.jpg `
+            --include-module=src.pak_loader `
+            --include-module=src.pet_renderer_sprite `
+            --include-module=src.pet_animator `
+            --include-module=src.pet_state `
+            --include-module=src.chat_service `
+            --include-module=src.status_panel `
+            --include-module=src.knowledge_hub `
+            --include-module=src.game_systems `
+            --include-module=src.bubble_widget `
+            --include-module=src.input_monitor `
+            --include-module=src.web_crawler `
+            --include-module=src.user_data `
+            --include-module=src.snap_system `
+            --nofollow-import-to=tkinter `
+            --nofollow-import-to=matplotlib `
+            --nofollow-import-to=numpy `
+            --nofollow-import-to=scipy `
+            --nofollow-import-to=PIL `
+            --nofollow-import-to=cv2 `
+            --windows-icon-from-ico=icons/icon.ico `
+            --windows-company-name=weidaozhong `
+            --windows-product-name="蓝色小嗵 XIAOTONG" `
+            --windows-file-description="蓝色小嗵 — 桌面宠物" `
+            --windows-file-version=1.0.1.0 `
+            --windows-product-version=1.0.1.0 `
+            --output-filename=xiaotong.exe `
+            --output-dir=dist `
+            main.py
+
+      - name: Verify build output
+        run: |
+          # Search for the built exe in likely locations
+          $found = Get-ChildItem -Path . -Filter "xiaotong.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 3
+          foreach ($f in $found) {
+            $mb = [math]::Round($f.Length / 1MB, 1)
+            Write-Host "Found: $($f.FullName) ($mb MB)"
+          }
+          if ($found.Count -eq 0) {
+            Write-Host "--- xiaotong.exe not found. Listing build outputs ---"
+            if (Test-Path dist) { Get-ChildItem dist -Recurse }
+            Get-ChildItem *.exe -ErrorAction SilentlyContinue
+            Get-ChildItem main.dist -ErrorAction SilentlyContinue
+            Write-Error "Nuitka build failed: xiaotong.exe not produced"
+            exit 1
+          }
+          # Ensure it's in dist/ for the upload step
+          $target = "dist\xiaotong.exe"
+          if (!(Test-Path $target)) {
+            New-Item -ItemType Directory -Force -Path dist | Out-Null
+            Copy-Item $found[0].FullName $target
+            Write-Host "Copied to $target"
+          }
+          $size = [math]::Round((Get-Item $target).Length / 1MB, 1)
+          Write-Host "Nuitka build OK: xiaotong.exe ($size MB)"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: xiaotong-nuitka-test
+          path: dist/xiaotong.exe
+          retention-days: 7
