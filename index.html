@@ -136,6 +136,44 @@ body:not(.loaded){position:fixed!important;inset:0!important;overflow:hidden!imp
 .LS.exit .LS-w4{animation-delay:.18s}
 .LS.exit .LS-w5{animation-delay:.24s}
 .LS.exit::before{animation:kExpand .5s .1s cubic-bezier(.23,1,.32,1) both}
+/* 加载屏落叶退出：随主体一同淡出消散 */
+.LS.exit .LS-leaf{animation:kLSLeafExit .35s ease-in both!important}
+
+/* ── 加载屏落叶 ─────────────────────── */
+.LS-leaf{
+  position:absolute;top:-45px;
+  border-radius:60% 40% 60% 40% / 50% 60% 40% 50%;
+  opacity:0;pointer-events:none;
+  will-change:transform,opacity;
+}
+@keyframes kLSLeafA{
+  0%  {transform:translateY(0) rotate(0deg)   translateX(0);opacity:0}
+  8%  {opacity:.50}
+  25% {transform:translateY(25vh) rotate(100deg) translateX(25px)}
+  50% {transform:translateY(50vh) rotate(210deg) translateX(-18px)}
+  75% {transform:translateY(75vh) rotate(320deg) translateX(22px)}
+  92% {opacity:.38}
+  100%{transform:translateY(110vh) rotate(420deg) translateX(-10px);opacity:0}
+}
+@keyframes kLSLeafB{
+  0%  {transform:translateY(0) rotate(15deg) translateX(0);opacity:0}
+  7%  {opacity:.45}
+  35% {transform:translateY(35vh) rotate(140deg) translateX(-22px)}
+  65% {transform:translateY(65vh) rotate(280deg) translateX(18px)}
+  93% {opacity:.30}
+  100%{transform:translateY(110vh) rotate(400deg) translateX(-12px);opacity:0}
+}
+@keyframes kLSLeafC{
+  0%  {transform:translateY(0) rotate(30deg) translateX(0);opacity:0}
+  8%  {opacity:.50}
+  40% {transform:translateY(40vh) rotate(170deg) translateX(18px)}
+  70% {transform:translateY(70vh) rotate(310deg) translateX(-14px)}
+  92% {opacity:.32}
+  100%{transform:translateY(110vh) rotate(450deg) translateX(10px);opacity:0}
+}
+@keyframes kLSLeafExit{
+  to{opacity:0;transform:translateY(-20px) scale(.4)}
+}
 
 @keyframes kBloom{
   0%{scale:0;opacity:0}
@@ -900,6 +938,27 @@ body.loaded .hc>*:nth-child(6){animation-delay:.42s}
   <div class="LS-w LS-w3"><div class="LS-l3"></div></div>
   <div class="LS-w LS-w4"><div class="LS-l4"></div></div>
   <div class="LS-w LS-w5"><div class="LS-l5"></div></div>
+  <!-- 落叶：丰富加载动画背景，减缓等待焦虑 -->
+  <div class="LS-leaf" style="left:4%;width:14px;height:14px;background:#004b23;animation:kLSLeafA 7s -1s ease-in-out infinite"></div>
+  <div class="LS-leaf" style="left:12%;width:7px;height:7px;background:#76c893;animation:kLSLeafB 9s -4.5s ease-in-out infinite"></div>
+  <div class="LS-leaf" style="left:22%;width:18px;height:18px;background:#a7c957;animation:kLSLeafC 8s -2s ease-in-out infinite"></div>
+  <div class="LS-leaf" style="left:32%;width:9px;height:9px;background:#52b788;animation:kLSLeafA 10s -6s ease-in-out infinite"></div>
+  <div class="LS-leaf" style="left:42%;width:5px;height:5px;background:#2dc653;animation:kLSLeafB 7.5s -3s ease-in-out infinite"></div>
+  <div class="LS-leaf" style="left:52%;width:20px;height:20px;background:#d4e09b;animation:kLSLeafC 9s -0.5s ease-in-out infinite"></div>
+  <div class="LS-leaf" style="left:62%;width:11px;height:11px;background:#208b3a;animation:kLSLeafA 8.5s -5s ease-in-out infinite"></div>
+  <div class="LS-leaf" style="left:72%;width:6px;height:6px;background:#cad2c5;animation:kLSLeafB 7s -2.5s ease-in-out infinite"></div>
+  <div class="LS-leaf" style="left:82%;width:16px;height:16px;background:#004b23;animation:kLSLeafC 9.5s -7s ease-in-out infinite"></div>
+  <div class="LS-leaf" style="left:92%;width:8px;height:8px;background:#76c893;animation:kLSLeafA 8s -1.5s ease-in-out infinite"></div>
+  <div class="LS-leaf" style="left:8%;width:10px;height:10px;background:#a7c957;animation:kLSLeafB 9s -5.5s ease-in-out infinite"></div>
+  <div class="LS-leaf" style="left:18%;width:22px;height:22px;background:#52b788;animation:kLSLeafC 7.5s -3.5s ease-in-out infinite"></div>
+  <div class="LS-leaf" style="left:28%;width:6px;height:6px;background:#2dc653;animation:kLSLeafA 10s -0.8s ease-in-out infinite"></div>
+  <div class="LS-leaf" style="left:38%;width:13px;height:13px;background:#d4e09b;animation:kLSLeafB 8s -6.5s ease-in-out infinite"></div>
+  <div class="LS-leaf" style="left:48%;width:9px;height:9px;background:#208b3a;animation:kLSLeafC 7s -2s ease-in-out infinite"></div>
+  <div class="LS-leaf" style="left:58%;width:17px;height:17px;background:#cad2c5;animation:kLSLeafA 9.5s -4s ease-in-out infinite"></div>
+  <div class="LS-leaf" style="left:68%;width:7px;height:7px;background:#004b23;animation:kLSLeafB 8.5s -1s ease-in-out infinite"></div>
+  <div class="LS-leaf" style="left:78%;width:12px;height:12px;background:#76c893;animation:kLSLeafC 10s -7s ease-in-out infinite"></div>
+  <div class="LS-leaf" style="left:88%;width:5px;height:5px;background:#a7c957;animation:kLSLeafA 7.5s -3s ease-in-out infinite"></div>
+  <div class="LS-leaf" style="left:96%;width:15px;height:15px;background:#52b788;animation:kLSLeafB 9s -5s ease-in-out infinite"></div>
 </div>
 
 <!-- Background layers -->
