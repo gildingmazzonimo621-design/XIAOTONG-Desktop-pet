@@ -862,6 +862,126 @@ body.loaded .hc>*:nth-child(6){animation-delay:.42s}
   .sec-t .char{opacity:1;transform:none}
   body{cursor:auto}
 }
+
+  /* ── Download Modal Sleek Styling ── */
+  .dl-modal {
+    position: fixed; inset: 0; z-index: 10100;
+    background: rgba(10, 22, 16, 0.45);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .dl-modal.show {
+    opacity: 1; pointer-events: auto;
+  }
+  .dl-modal-box {
+    position: relative;
+    width: 90%; max-width: 480px;
+    background: rgba(252, 252, 251, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 32px 64px -16px rgba(10, 22, 16, 0.18), inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+    border-radius: 28px;
+    padding: 40px 32px 32px;
+    transform: scale(0.9) translateY(20px);
+    transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .dl-modal.show .dl-modal-box {
+    transform: scale(1) translateY(0);
+  }
+  .dl-modal-close {
+    position: absolute; top: 22px; right: 22px;
+    width: 32px; height: 32px; border-radius: 50%;
+    border: none; background: rgba(0, 0, 0, 0.04);
+    color: var(--text-2); font-size: 20px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    cursor: none; transition: background 0.3s, color 0.3s;
+  }
+  .dl-modal-close:hover {
+    background: rgba(0, 0, 0, 0.08); color: var(--text);
+  }
+  .dl-modal-title {
+    font-family: var(--serif-cn); font-size: 24px; font-weight: 700;
+    color: var(--text); text-align: center; margin-bottom: 6px;
+    letter-spacing: 0.04em;
+  }
+  .dl-modal-subtitle {
+    font-size: 13px; color: var(--text-2); text-align: center;
+    margin-bottom: 32px;
+  }
+  .dl-modal-channels {
+    display: flex; flex-direction: column; gap: 16px;
+    margin-bottom: 28px;
+  }
+  .dl-channel-card {
+    display: flex; align-items: center; gap: 20px;
+    padding: 20px 24px; border-radius: 18px;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: none; position: relative; overflow: hidden;
+  }
+  .dl-channel-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(215, 239, 227, 0.3), rgba(94, 123, 168, 0.1));
+    opacity: 0; transition: opacity 0.4s; z-index: -1;
+  }
+  .dl-channel-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(94, 123, 168, 0.2);
+    box-shadow: 0 12px 24px rgba(10, 22, 16, 0.06);
+    background: rgba(255, 255, 255, 0.95);
+  }
+  .dl-channel-card:hover::before {
+    opacity: 1;
+  }
+  .dl-channel-card.premium-channel {
+    border-color: rgba(74, 124, 89, 0.15);
+  }
+  .dl-channel-card.premium-channel:hover {
+    border-color: rgba(74, 124, 89, 0.3);
+  }
+  .premium-channel::before {
+    background: linear-gradient(135deg, rgba(215, 239, 227, 0.4), rgba(184, 146, 63, 0.1));
+  }
+  .dl-channel-icon {
+    font-size: 28px; width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0, 0, 0, 0.02); border-radius: 12px;
+  }
+  .dl-channel-info {
+    flex: 1; display: flex; flex-direction: column; gap: 2px;
+  }
+  .dl-channel-tag {
+    align-self: flex-start;
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    color: var(--green); background: rgba(74, 124, 89, 0.12);
+    padding: 2px 6px; border-radius: 100px; margin-bottom: 2px;
+  }
+  .dl-channel-tag.secondary {
+    color: var(--ocean); background: rgba(94, 123, 168, 0.12);
+  }
+  .dl-channel-info h4 {
+    font-size: 15px; font-weight: 600; color: var(--text);
+  }
+  .dl-channel-info p {
+    font-size: 11px; color: var(--text-2);
+  }
+  .dl-channel-arrow {
+    width: 16px; height: 16px; color: var(--text-3);
+    transition: transform 0.3s;
+  }
+  .dl-channel-card:hover .dl-channel-arrow {
+    transform: translateX(4px); color: var(--text);
+  }
+  .dl-modal-footer {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--text-3);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding-top: 16px; margin-top: 12px;
+  }
 </style>
 </head>
 <body>
@@ -1115,6 +1235,42 @@ body.loaded .hc>*:nth-child(6){animation-delay:.42s}
   </div>
   <p class="footer-copy">Apache 2.0 + 附加协议 · 蓝色小嗵 XIAOTONG</p>
 </footer>
+
+<!-- Download Channel Picker Modal -->
+<div id="dlModal" class="dl-modal">
+  <div class="dl-modal-box">
+    <button class="dl-modal-close" id="dlModalClose" aria-label="关闭">&times;</button>
+    <h3 class="dl-modal-title">领养蓝色小嗵</h3>
+    <p class="dl-modal-subtitle">请选择最适合你当前网络的下载通道</p>
+    
+    <div class="dl-modal-channels">
+      <a class="dl-channel-card premium-channel" href="https://1859711508.share.123pan.cn/123pan/55Eivd-Ucwlh" target="_blank" rel="noopener">
+        <div class="dl-channel-icon">🚀</div>
+        <div class="dl-channel-info">
+          <span class="dl-channel-tag">推荐 (免登录)</span>
+          <h4>国内极速通道</h4>
+          <p>基于国内 123云盘，拉满宽带极速下载</p>
+        </div>
+        <svg class="dl-channel-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+      </a>
+
+      <a class="dl-channel-card" href="/download" target="_blank" rel="noopener">
+        <div class="dl-channel-icon">🌐</div>
+        <div class="dl-channel-info">
+          <span class="dl-channel-tag secondary">专属代理</span>
+          <h4>官方海外通道</h4>
+          <p>直接下载 GitHub 资产 (适合海外用户)</p>
+        </div>
+        <svg class="dl-channel-arrow" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+      </a>
+    </div>
+
+    <div class="dl-modal-footer">
+      <span>大小：约 138 MB</span>
+      <span>版本：最新发布 (Portable)</span>
+    </div>
+  </div>
+</div>
 
 <script>
 (function(){
@@ -1425,6 +1581,33 @@ body.loaded .hc>*:nth-child(6){animation-delay:.42s}
     document.body.classList.add('loaded');
     document.documentElement.style.overflow = '';
   }
+
+  /* ── Download Modal Logic ── */
+  var dlModal = document.getElementById('dlModal');
+  var dlModalClose = document.getElementById('dlModalClose');
+  var dlTriggers = document.querySelectorAll('.nav-dl, .btn-gold, .dl-btn');
+
+  dlTriggers.forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      dlModal.classList.add('show');
+      document.body.style.overflow = 'hidden';
+    });
+  });
+
+  function hideDlModal(){
+    dlModal.classList.remove('show');
+    if(!document.getElementById('loadingScreen')) {
+      document.body.style.overflow = '';
+    }
+  }
+
+  dlModalClose.addEventListener('click', hideDlModal);
+  dlModal.addEventListener('click', function(e){
+    if(e.target === dlModal) {
+      hideDlModal();
+    }
+  });
 
 })();
 </script>
