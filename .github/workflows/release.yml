@@ -96,8 +96,8 @@ jobs:
           $jsFile = "gh-pages-dir/functions/download.js"
           if (Test-Path $jsFile) {
             $content = Get-Content $jsFile -Raw
-            $content = $content -replace 'releases/download/v[\d.]+/xiaotong-v[\d.]+\.exe', "releases/download/$version/xiaotong-$version.exe"
-            $content = $content -replace 'fileName = "xiaotong-v[\d.]+\.exe"', "fileName = `"xiaotong-$version.exe`""
+            $content = $content -replace 'releases/download/v[\d.]+/xiaotong(-v[\d.]+)?\.exe', "releases/download/$version/xiaotong-$version.exe"
+            $content = $content -replace 'fileName = "xiaotong(-v[\d.]+)?\.exe"', "fileName = `"xiaotong-$version.exe`""
             Set-Content $jsFile $content -NoNewline
             Write-Host "Updated download.js with URL and fileName for $version"
           } else {
