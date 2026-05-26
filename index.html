@@ -1413,14 +1413,39 @@ body.loaded .hc>*:nth-child(6){animation-delay:.42s}
   /* ── Loading Screen — Kaleidoscope ──── */
   var ls = document.getElementById('loadingScreen');
   if(ls){
-    setTimeout(function(){
+    var preloadDone = false, animDone = false, exited = false;
+
+    /* preload all lazy images during animation */
+    var lazySrcs = [];
+    document.querySelectorAll('img[loading="lazy"]').forEach(function(img){
+      lazySrcs.push(img.getAttribute('src'));
+    });
+    var remaining = lazySrcs.length;
+    if(remaining === 0){ preloadDone = true; }
+    else {
+      lazySrcs.forEach(function(src){
+        var i = new Image();
+        i.onload = i.onerror = function(){
+          if(--remaining <= 0){ preloadDone = true; tryExit(); }
+        };
+        i.src = src;
+      });
+    }
+
+    function tryExit(){
+      if(exited || !animDone || !preloadDone) return;
+      exited = true;
       ls.classList.add('exit');
       document.body.classList.add('loaded');
       document.documentElement.style.overflow = '';
-    }, 2200);
-    setTimeout(function(){
-      ls.remove();
-    }, 3200);
+      setTimeout(function(){ ls.remove(); }, 1000);
+    }
+
+    /* min animation time */
+    setTimeout(function(){ animDone = true; tryExit(); }, 2200);
+    /* max wait — don't block forever on slow connections */
+    setTimeout(function(){ preloadDone = true; tryExit(); }, 5000);
+
   } else {
     document.body.classList.add('loaded');
     document.documentElement.style.overflow = '';
