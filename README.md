@@ -92,7 +92,7 @@
   </tr>
   <tr>
     <td align="center"><img src="docs/study.gif" width="180" alt="看书学习"/><br/><b>看书学习</b><br/><sub>Studying</sub></td>
-    <td align="center"><img src="docs/sleep.gif" width="180" alt="睡觉"/><br/><b>睡觉</b><br/><sub>Sleeping</sub></td>
+    <td align="center"><img src="docs/wake.gif" width="180" alt="唤醒"/><br/><b>唤醒</b><br/><sub>Waking up</sub></td>
     <td align="center"><img src="docs/cat.gif" width="180" alt="变猫猫"/><br/><b>变猫猫</b><br/><sub>Cat Form</sub></td>
   </tr>
 </table>
